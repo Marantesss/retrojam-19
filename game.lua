@@ -27,8 +27,27 @@ function Keyboard:left_key() return key(60) end
 function Keyboard:right_key() return key(61) end
 
 -------------------------------------------------
------------------ Collider Box ------------------
+-------------------- Hit Box --------------------
 -------------------------------------------------
+HitBox {
+	x1, y1, -- upper-left coordinates
+	x2, y2	-- lower-right coordinates
+}
+-- CONSTRUCTOR --
+HitBox.__index = HitBox
+function HitBox:new()
+	local cb = {}			  	-- our new object
+	setmetatable(cb, HitBox)	-- make HitBox handle lookup
+	return cb
+end
+
+function detect_collision(hit_box_1, hit_box_2)
+	if hit_box_1.x1 > hit_box_2.x2 return false -- 1 is right of 2
+	if hit_box_1.x2 < hit_box_2.x1 return false -- 1 is left of 2
+	if hit_box_1.y1 > hit_box_2.y2 return false -- 1 is under 2
+	if hit_box_1.y2 < hit_box_2.y1 return false -- 1 is above 2
+	return true -- if all else fails, there has been collision
+end
 
 function TIC()
 	Screen.clear()
