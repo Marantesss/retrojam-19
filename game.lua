@@ -28,6 +28,7 @@ function Keyboard:left_key() return key(60) end
 function Keyboard:right_key() return key(61) end
 -- MISC
 function Keyboard:space_key() return key(48) end
+function Keyboard:space_keyp() return keyp(48) end
 
 -------------------------------------------------
 -------------------- HEADER ---------------------
@@ -145,32 +146,36 @@ function Enemy:move()
 end
 
 -------------------------------------------------
--------------------- HERO -----------------------
+-------------------- Dong -----------------------
 -------------------------------------------------
-Hero = {  
-    x, y,                         -- coords
-    sprite_index, width, height,  -- sprite index and blocks
-    hitbox                        -- collision
+Dong = {  
+    x, y,                                       -- coords
+    current_sprite_index, sprite_indexes,       -- Sprite indexes
+    width, height,                              -- sprite blocks
+    hitbox,                                     -- collision
+    headphone_on                                -- headphones
 }
 -- CONSTRUCTOR --
-Hero.__index = Hero
-function Hero:new()
+Dong.__index = Dong
+function Dong:new()
 	local h = {}
-    setmetatable(h, Hero)
+    setmetatable(h, Dong)
     h.x = math.random(0, Screen.width)
     h.y = math.random(0, Screen.height)
     h.width = 2
     h.height = 2
-    h.sprite_index = 3
+    h.current_sprite_index = 256
+    h.sprite_indexes = {256, 258, 260, 262, 264}
+    h.headphone_on = false
     h.hitbox = HitBox:new(h.x, h.y, h.x + h.width * Screen.pixels_per_square, h.y + h.height * Screen.pixels_per_square)
 	return h
 end
 -- METHODS --
-function Hero:draw()
-    spr(self.sprite_index, self.x, self.y, -1, 1, 0, 0, self.width, self.height)
+function Dong:draw()
+    spr(self.current_sprite_index, self.x, self.y, 12, 1, 0, 0, self.width, self.height)
 end
 
-function Hero:move()
+function Dong:move()
     local new_x = self.x
     local new_y = self.y
     local offset_x = self.width * Screen.pixels_per_square
@@ -188,11 +193,18 @@ function Hero:move()
     self.hitbox.y1 = new_y
     self.hitbox.x2 = new_x + offset_x
     self.hitbox.y2 = new_y + offset_y
+    -- animate
+    if Game.time % 30 < 15 then self.current_sprite_index = 256
+    else self.current_sprite_index = 258 end
+
+    if self.headphone_on then
+        self.current_sprite_index = self.current_sprite_index + 4
+    end
 end
 
-function Hero:punch()
-    if Keyboard.space_key() then
-        spr(self.sprite_index, self.x, self.y, -1, 1, 0, 0, 3, 2)
+function Dong:action()
+    if Keyboard.space_keyp() then
+        self.headphone_on = not(self.headphone_on)
     end
 end
 
@@ -208,7 +220,7 @@ end
 -------------------------------------------------
 Game = {
     time = 0,               -- time passed
-    hero = Hero:new(),      -- hero
+    Dong = Dong:new(),      -- Dong
     enemy = Enemy:new(),    -- enemies array EVENTUALLY
     header = Header:new()   -- Header with game information
 }
@@ -220,15 +232,15 @@ function TIC()
     Game.time = Game.time + 1
     print(Game.time, 20, 20)
     Screen:clear()
-    Game.hero:move()
-    Game.hero:draw()
-    Game.hero:punch()
-    if detect_collision(Game.hero.hitbox, Game.enemy.hitbox) then
+    Game.Dong:move()
+    Game.Dong:draw()
+    Game.Dong:action()
+    if detect_collision(Game.Dong.hitbox, Game.enemy.hitbox) then
         -- do stuff
     end
     Game.enemy:move()
     Game.enemy:draw()
-    if detect_collision(Game.hero.hitbox, Game.enemy.hitbox) then
+    if detect_collision(Game.Dong.hitbox, Game.enemy.hitbox) then
         -- do stuff
     end
 end
