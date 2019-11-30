@@ -27,6 +27,54 @@ function Keyboard:left_key() return key(60) end
 function Keyboard:right_key() return key(61) end
 
 -------------------------------------------------
+-------------------- Header ---------------------
+-------------------------------------------------
+Header = {
+    stamina,
+    battery
+}
+-- CONSTRUCTOR --
+Header.__index = Header
+function Header:new()
+	local h = {}			  	-- our new object
+    setmetatable(h, Header)	-- make Header handle lookup
+    h.stamina = Bar:new()
+    h.battery = Bar:new()
+	return h
+end
+
+-------------------------------------------------
+-------------------- Stamina --------------------
+-------------------------------------------------
+Bar = {
+    x,
+    y,
+    width,
+    height,
+    sprite,
+    level
+}
+-- CONSTRUCTOR --
+Bar.__index = Bar
+function Bar:new()
+	local b = {}			  	-- our new object
+    setmetatable(b, Bar)	-- make Bar handle lookup
+    b.x = 0
+    b.y = 0
+    b.width = 1
+    b.height = 1
+    b.sprite = 6
+    b.level = 10
+	return b
+end
+
+function Bar:draw()
+    for i=1,self.level do
+        spr(self.sprite,self.x+i*8,self.y,-1,1,0,0,self.width,self.height)
+    end
+end
+
+-------------------------------------------------
 -------------------- Hit Box --------------------
 -------------------------------------------------
 HitBox = {
@@ -174,22 +222,45 @@ function tablelength(T)
 end
 
 time = 0
+header = Header:new()
 hero = Hero:new()
 enemy = Enemy:new()
+stam = true
 
 function TIC()
     time = time + 1
     Screen:clear()
+    header.stamina:draw()
     hero:move()
     hero:draw()
     hero:punch()
     if detect_collision(hero.hitbox,enemy.hitbox) then
-        print("Ouch!",hero.x+20,hero.y)
+        if header.stamina.level == 0 then
+            stam = false
+        elseif header.stamina.level == 10 then
+            stam = true
+        end
+
+        if stam then
+            header.stamina.level = header.stamina.level - 1
+        else
+            header.stamina.level = header.stamina.level + 1
+        end
     end
     enemy:move()
     enemy:draw()
     if detect_collision(hero.hitbox,enemy.hitbox) then
-        print("Ouch!",enemy.x-30,enemy.y)
+        if header.stamina.level == 0 then
+            stam = false
+        elseif header.stamina.level == 10 then
+            stam = true
+        end
+
+        if stam then
+            header.stamina.level = header.stamina.level - 1
+        else
+            header.stamina.level = header.stamina.level + 1
+        end
     end
     print(hero.hitbox.x1,0,110)
     print(enemy.hitbox.x2,30,110)
