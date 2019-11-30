@@ -29,7 +29,7 @@ function Keyboard:right_key() return key(61) end
 -------------------------------------------------
 -------------------- Hit Box --------------------
 -------------------------------------------------
-HitBox {
+HitBox = {
 	x1, y1, -- upper-left coordinates
 	x2, y2	-- lower-right coordinates
 }
@@ -42,10 +42,10 @@ function HitBox:new()
 end
 
 function detect_collision(hit_box_1, hit_box_2)
-	if hit_box_1.x1 > hit_box_2.x2 return false -- 1 is right of 2
-	if hit_box_1.x2 < hit_box_2.x1 return false -- 1 is left of 2
-	if hit_box_1.y1 > hit_box_2.y2 return false -- 1 is under 2
-	if hit_box_1.y2 < hit_box_2.y1 return false -- 1 is above 2
+	if hit_box_1.x1 > hit_box_2.x2 then return false end -- 1 is right of 2
+	if hit_box_1.x2 < hit_box_2.x1 then return false end -- 1 is left of 2
+	if hit_box_1.y1 > hit_box_2.y2 then return false end -- 1 is under 2
+	if hit_box_1.y2 < hit_box_2.y1 then return false end -- 1 is above 2
 	return true -- if all else fails, there has been collision
 end
 
