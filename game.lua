@@ -4,7 +4,8 @@
 -------------------------------------------------
 Screen = {
 	width = 240, height = 136,		-- 240x136 display
-	refresh_rate = 60 				-- 60Hz refresh rate
+    refresh_rate = 60, 				-- 60Hz refresh rate
+    pixels_per_square = 8           -- pixels per sprite square
 }
 -- clear screen
 function Screen:clear() cls() end
@@ -25,6 +26,8 @@ function Keyboard:up_key() return key(58) end
 function Keyboard:down_key() return key(59) end
 function Keyboard:left_key() return key(60) end
 function Keyboard:right_key() return key(61) end
+-- MISC
+function Keyboard:space_key() return key(48) end
 
 -------------------------------------------------
 -------------------- Hit Box --------------------
@@ -50,53 +53,49 @@ function detect_collision(hit_box_1, hit_box_2)
 	if hit_box_1.x2 < hit_box_2.x1 then return false end -- 1 is left of 2
 	if hit_box_1.y1 > hit_box_2.y2 then return false end -- 1 is under 2
 	if hit_box_1.y2 < hit_box_2.y1 then return false end -- 1 is above 2
-	return true -- if all else fails, there has-- Singleton
+	return true -- if all else fails, there has been collision
 end
 
 -------------------------------------------------
 -------------------- Enemy ----------------------
 -------------------------------------------------
 Enemy = {
-    x,
-    y,
-    width,
-    height,
-    hitbox
+    x, y,                         -- coords
+    sprite_index, width, height,  -- sprite index and blocks
+    hitbox                        -- collision
 }
 -- CONSTRUCTOR --
 Enemy.__index = Enemy
 function Enemy:new()
-	local e = {}			  	-- our new object
-    setmetatable(e, Enemy)	-- make Enemy handle lookup
-    e.x = math.random(0,240)
-    e.y = math.random(0,136)
+	local e = {}			  	    -- our new object
+    setmetatable(e, Enemy)	        -- make Enemy handle lookup
+    e.x = math.random(0, Screen.width)
+    e.y = math.random(0, Screen.height)
     e.width = 2
     e.height = 2
-    e.hitbox = HitBox:new(e.x,e.y,e.x+e.width,e.y+e.height)
+    e.sprite_index = 1
+    e.hitbox = HitBox:new(e.x, e.y, e.x + e.width * Screen.pixels_per_square, e.y + e.height * Screen.pixels_per_square)
 	return e
 end
-
+-- METHODS --
 function Enemy:draw()
-    spr(1,self.x,self.y,-1,1,0,0,self.width,self.height)
+    spr(self.sprite_index, self.x, self.y, -1, 1, 0, 0, self.width, self.height)
 end
 
 function Enemy:move()
-    if time % 60 == 0 then
-        new_x = self.x + math.random(-1,1)
-        new_y = self.y + math.random(-1,1)
-        
-        if new_x > 0 and new_x < 240 then
-            self.x = new_x
-        end
-        
-        if new_y > 0 and new_y < 136 then
-            self.y = new_y
-        end
-    
+    if Game.time % 60 == 0 then -- move per second
+        local new_x = self.x + math.random(-1,1)
+        local new_y = self.y + math.random(-1,1)
+        local offset_x = self.width * Screen.pixels_per_square;
+        local offset_y = self.height * Screen.pixels_per_square;
+        -- out of bounds
+        if new_x > 0 and new_x + offset_x < Screen.width then self.x = new_x end
+        if new_y > 0 and new_y + offset_y < Screen.height then self.y = new_y end
+        -- update collision
         self.hitbox.x1 = new_x
         self.hitbox.y1 = new_y
-        self.hitbox.x2 = new_x + self.width
-        self.hitbox.y2 = new_y + self.height
+        self.hitbox.x2 = new_x + offset_x
+        self.hitbox.y2 = new_y + offset_y
     end
 end
 
@@ -104,66 +103,51 @@ end
 -------------------- Hero -----------------------
 -------------------------------------------------
 Hero = {  
-    x,
-    y,
-    width,
-    height,
-    hitbox
+    x, y,                         -- coords
+    sprite_index, width, height,  -- sprite index and blocks
+    hitbox                        -- collision
 }
 -- CONSTRUCTOR --
 Hero.__index = Hero
 function Hero:new()
-	local h = {}			  	-- our new object
-    setmetatable(h, Hero)	-- make Hero handle lookup
-    h.x = math.random(0,240)
-    h.y = math.random(0,136)
+	local h = {}
+    setmetatable(h, Hero)
+    h.x = math.random(0, Screen.width)
+    h.y = math.random(0, Screen.height)
     h.width = 2
     h.height = 2
-    h.hitbox = HitBox:new(h.x,h.y,h.x+h.width,h.y+h.height)
+    h.sprite_index = 3
+    h.hitbox = HitBox:new(h.x, h.y, h.x + h.width * Screen.pixels_per_square, h.y + h.height * Screen.pixels_per_square)
 	return h
 end
-
+-- METHODS --
 function Hero:draw()
-    spr(3,self.x,self.y,-1,1,0,0,self.width,self.height)
+    spr(self.sprite_index, self.x, self.y, -1, 1, 0, 0, self.width, self.height)
 end
 
 function Hero:move()
-    new_x = self.x
-    new_y = self.y
-
-    if key(1) then
-        new_x = self.x - 1
-    end
-
-    if key(4) then
-        new_x = self.x + 1
-    end
-
-    if key(19) then
-        new_y = self.y + 1
-    end
-
-    if key(23) then
-        new_y = self.y - 1
-    end
-
-    if new_x > 0 and new_x < 240 then
-        self.x = new_x
-    end
-
-    if new_y > 0 and new_y < 136 then
-        self.y = new_y
-    end
-
+    local new_x = self.x
+    local new_y = self.y
+    local offset_x = self.width * Screen.pixels_per_square
+    local offset_y = self.height * Screen.pixels_per_square
+    -- movement
+    if Keyboard.a_key() then new_x = self.x - 1 end
+    if Keyboard.d_key() then new_x = self.x + 1 end
+    if Keyboard.s_key() then new_y = self.y + 1 end
+    if Keyboard.w_key() then new_y = self.y - 1 end
+    -- out of bounds
+    if new_x > 0 and new_x + offset_x < Screen.width then self.x = new_x end
+    if new_y > 0 and new_y + offset_y < Screen.height then self.y = new_y end
+    -- update collision
     self.hitbox.x1 = new_x
     self.hitbox.y1 = new_y
-    self.hitbox.x2 = new_x + self.width
-    self.hitbox.y2 = new_y + self.height
+    self.hitbox.x2 = new_x + offset_x
+    self.hitbox.y2 = new_y + offset_y
 end
 
 function Hero:punch()
-    if key(48) then
-        spr(3,self.x,self.y,-1,1,0,0,3,2)
+    if Keyboard.space_key() then
+        spr(self.sprite_index, self.x, self.y, -1, 1, 0, 0, 3, 2)
     end
 end
 
@@ -173,24 +157,32 @@ function tablelength(T)
     return length
 end
 
-time = 0
-hero = Hero:new()
-enemy = Enemy:new()
+-------------------------------------------------
+------------------ Singleton --------------------
+-------------------- Game -----------------------
+-------------------------------------------------
+Game = {
+    time = 0,           -- time passed
+    hero = Hero:new(),  -- hero
+    enemy = Enemy:new() -- enemies array EVENTUALLY   
+}
 
+-------------------------------------------------
+----------------- Game Loop ---------------------
+-------------------------------------------------
 function TIC()
-    time = time + 1
+    Game.time = Game.time + 1
+    print(Game.time, 20, 20)
     Screen:clear()
-    hero:move()
-    hero:draw()
-    hero:punch()
-    if detect_collision(hero.hitbox,enemy.hitbox) then
-        print("Ouch!",hero.x+20,hero.y)
+    Game.hero:move()
+    Game.hero:draw()
+    Game.hero:punch()
+    if detect_collision(Game.hero.hitbox,Game.enemy.hitbox) then
+        print("Ouch!",Game.hero.x + 20 , Game.hero.y)
     end
-    enemy:move()
-    enemy:draw()
-    if detect_collision(hero.hitbox,enemy.hitbox) then
-        print("Ouch!",enemy.x-30,enemy.y)
+    Game.enemy:move()
+    Game.enemy:draw()
+    if detect_collision(Game.hero.hitbox,Game.enemy.hitbox) then
+        print("Ouch!", Game.enemy.x - 30, Game.enemy.y)
     end
-    print(hero.hitbox.x1,0,110)
-    print(enemy.hitbox.x2,30,110)
 end
