@@ -30,7 +30,52 @@ function Keyboard:right_key() return key(61) end
 function Keyboard:space_key() return key(48) end
 
 -------------------------------------------------
--------------------- Hit Box --------------------
+-------------------- HEADER ---------------------
+-------------------------------------------------
+Header = {
+    sanity,     -- Sanity level 
+    battery     -- Headphone battery level
+}
+-- CONSTRUCTOR --
+Header.__index = Header
+function Header:new()
+	local h = {}			  	-- our new object
+    setmetatable(h, Header)	-- make Header handle lookup
+    h.sanity = Bar:new()
+    h.battery = Bar:new()
+	return h
+end
+
+-------------------------------------------------
+-------------------- SANITY --------------------
+-------------------------------------------------
+Bar = {
+    x, y,
+    sprite_index, width, height,
+    level
+}
+-- CONSTRUCTOR --
+Bar.__index = Bar
+function Bar:new()
+	local b = {}			  	-- our new object
+    setmetatable(b, Bar)	-- make Bar handle lookup
+    b.x = 0
+    b.y = 0
+    b.width = 1
+    b.height = 1
+    b.sprite_index = 6
+    b.level = 10
+	return b
+end
+-- METHODS --
+function Bar:draw()
+    for i=1, self.level do
+        spr(self.sprite_index,self.x+i*8,self.y,-1,1,0,0,self.width,self.height)
+    end
+end
+
+-------------------------------------------------
+-------------------- HIT BOX --------------------
 -------------------------------------------------
 HitBox = {
 	x1, y1, -- upper-left coordinates
@@ -47,7 +92,7 @@ function HitBox:new(x1,x2,y1,y2)
     hb.y2 = y2
 	return hb
 end
-
+-- METHODS
 function detect_collision(hit_box_1, hit_box_2)
 	if hit_box_1.x1 > hit_box_2.x2 then return false end -- 1 is right of 2
 	if hit_box_1.x2 < hit_box_2.x1 then return false end -- 1 is left of 2
@@ -57,7 +102,7 @@ function detect_collision(hit_box_1, hit_box_2)
 end
 
 -------------------------------------------------
--------------------- Enemy ----------------------
+-------------------- ENEMY ----------------------
 -------------------------------------------------
 Enemy = {
     x, y,                         -- coords
@@ -100,7 +145,7 @@ function Enemy:move()
 end
 
 -------------------------------------------------
--------------------- Hero -----------------------
+-------------------- HERO -----------------------
 -------------------------------------------------
 Hero = {  
     x, y,                         -- coords
@@ -159,16 +204,17 @@ end
 
 -------------------------------------------------
 ------------------ Singleton --------------------
--------------------- Game -----------------------
+-------------------- GAME -----------------------
 -------------------------------------------------
 Game = {
-    time = 0,           -- time passed
-    hero = Hero:new(),  -- hero
-    enemy = Enemy:new() -- enemies array EVENTUALLY   
+    time = 0,               -- time passed
+    hero = Hero:new(),      -- hero
+    enemy = Enemy:new(),    -- enemies array EVENTUALLY
+    header = Header:new()   -- Header with game information
 }
 
 -------------------------------------------------
------------------ Game Loop ---------------------
+----------------- GAME LOOP ---------------------
 -------------------------------------------------
 function TIC()
     Game.time = Game.time + 1
@@ -177,12 +223,12 @@ function TIC()
     Game.hero:move()
     Game.hero:draw()
     Game.hero:punch()
-    if detect_collision(Game.hero.hitbox,Game.enemy.hitbox) then
-        print("Ouch!",Game.hero.x + 20 , Game.hero.y)
+    if detect_collision(Game.hero.hitbox, Game.enemy.hitbox) then
+        -- do stuff
     end
     Game.enemy:move()
     Game.enemy:draw()
-    if detect_collision(Game.hero.hitbox,Game.enemy.hitbox) then
-        print("Ouch!", Game.enemy.x - 30, Game.enemy.y)
+    if detect_collision(Game.hero.hitbox, Game.enemy.hitbox) then
+        -- do stuff
     end
 end
