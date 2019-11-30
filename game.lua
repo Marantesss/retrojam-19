@@ -42,8 +42,8 @@ Header.__index = Header
 function Header:new()
 	local h = {}			  	-- our new object
     setmetatable(h, Header)	-- make Header handle lookup
-    h.sanity = Bar:new()
-    h.battery = Bar:new()
+    h.sanity = Bar:new(100)
+    h.battery = Bar:new(0)
 	return h
 end
 
@@ -57,20 +57,20 @@ Bar = {
 }
 -- CONSTRUCTOR --
 Bar.__index = Bar
-function Bar:new()
+function Bar:new(x)
 	local b = {}			  	-- our new object
     setmetatable(b, Bar)	-- make Bar handle lookup
-    b.x = 0
+    b.x = x
     b.y = 0
     b.width = 1
     b.height = 1
-    b.sprite_index = 6
+    b.sprite_index = 1
     b.level = 10
 	return b
 end
 -- METHODS --
 function Bar:draw()
-    for i=1, self.level do
+    for i=0, self.level-1 do
         spr(self.sprite_index,self.x+i*8,self.y,-1,1,0,0,self.width,self.height)
     end
 end
@@ -108,7 +108,8 @@ end
 Enemy = {
     x, y,                         -- coords
     sprite_index, width, height,  -- sprite index and blocks
-    hitbox                        -- collision
+    hitbox,                       -- collision
+    reflected
 }
 -- CONSTRUCTOR --
 Enemy.__index = Enemy
@@ -119,13 +120,14 @@ function Enemy:new()
     e.y = math.random(0, Screen.height)
     e.width = 2
     e.height = 2
-    e.sprite_index = 1
+    e.sprite_index = 264
     e.hitbox = HitBox:new(e.x, e.y, e.x + e.width * Screen.pixels_per_square, e.y + e.height * Screen.pixels_per_square)
-	return e
+    e.reflected = 0
+    return e
 end
 -- METHODS --
 function Enemy:draw()
-    spr(self.sprite_index, self.x, self.y, -1, 1, 0, 0, self.width, self.height)
+    spr(self.sprite_index, self.x, self.y, 12, 1, self.reflected, 0, self.width, self.height)
 end
 
 function Enemy:move()
@@ -134,9 +136,11 @@ function Enemy:move()
         local new_y = self.y + math.random(-1,1)
         local offset_x = self.width * Screen.pixels_per_square;
         local offset_y = self.height * Screen.pixels_per_square;
+        -- update reflected
+        self.reflected = math.random(0,1)
         -- out of bounds
         if new_x > 0 and new_x + offset_x < Screen.width then self.x = new_x end
-        if new_y > 0 and new_y + offset_y < Screen.height then self.y = new_y end
+        if new_y > 8 and new_y + offset_y < Screen.height then self.y = new_y end
         -- update collision
         self.hitbox.x1 = new_x
         self.hitbox.y1 = new_y
@@ -153,6 +157,9 @@ Dong = {
     current_sprite_index, sprite_indexes,       -- Sprite indexes
     width, height,                              -- sprite blocks
     hitbox,                                     -- collision
+    reflected,
+    sanity,
+    battery,
     headphone_on                                -- headphones
 }
 -- CONSTRUCTOR --
@@ -160,19 +167,22 @@ Dong.__index = Dong
 function Dong:new()
 	local h = {}
     setmetatable(h, Dong)
-    h.x = math.random(0, Screen.width)
-    h.y = math.random(0, Screen.height)
+    h.x = Screen.width / 2
+    h.y = Screen.height / 2
     h.width = 2
     h.height = 2
     h.current_sprite_index = 256
     h.sprite_indexes = {256, 258, 260, 262, 264}
+    h.reflected = 0
+    h.sanity = 10
+    h.battery = 10
     h.headphone_on = false
     h.hitbox = HitBox:new(h.x, h.y, h.x + h.width * Screen.pixels_per_square, h.y + h.height * Screen.pixels_per_square)
 	return h
 end
 -- METHODS --
 function Dong:draw()
-    spr(self.current_sprite_index, self.x, self.y, 12, 1, 0, 0, self.width, self.height)
+    spr(self.current_sprite_index, self.x, self.y, 12, 1, self.reflected, 0, self.width, self.height)
 end
 
 function Dong:move()
@@ -181,13 +191,19 @@ function Dong:move()
     local offset_x = self.width * Screen.pixels_per_square
     local offset_y = self.height * Screen.pixels_per_square
     -- movement
-    if Keyboard.a_key() then new_x = self.x - 1 end
-    if Keyboard.d_key() then new_x = self.x + 1 end
+    if Keyboard.a_key() then
+        new_x = self.x - 1
+        self.reflected = 1
+    end
+    if Keyboard.d_key() then
+        new_x = self.x + 1
+        self.reflected = 0
+    end
     if Keyboard.s_key() then new_y = self.y + 1 end
     if Keyboard.w_key() then new_y = self.y - 1 end
     -- out of bounds
     if new_x > 0 and new_x + offset_x < Screen.width then self.x = new_x end
-    if new_y > 0 and new_y + offset_y < Screen.height then self.y = new_y end
+    if new_y > 8 and new_y + offset_y < Screen.height then self.y = new_y end
     -- update collision
     self.hitbox.x1 = new_x
     self.hitbox.y1 = new_y
@@ -203,8 +219,12 @@ function Dong:move()
 end
 
 function Dong:action()
-    if Keyboard.space_keyp() then
+    if Keyboard.space_keyp() and self.battery > 0 then
         self.headphone_on = not(self.headphone_on)
+    end
+
+    if self.battery == 0 then
+        self.headphone_on = false
     end
 end
 
@@ -232,15 +252,28 @@ function TIC()
     Game.time = Game.time + 1
     print(Game.time, 20, 20)
     Screen:clear()
+    Game.header.battery:draw()
+    Game.header.sanity:draw()
+    print("Battery:", 1, 2, 6)
+    print(Game.Dong.battery*10, 48, 2, 6)
+    print("Sanity:", 101, 2, 6)
+    print(Game.Dong.sanity*10, 138, 2, 6)
     Game.Dong:move()
     Game.Dong:draw()
     Game.Dong:action()
-    if detect_collision(Game.Dong.hitbox, Game.enemy.hitbox) then
-        -- do stuff
+    if Game.time % 60 == 0 then
+        if Game.Dong.headphone_on and Game.Dong.battery > 0 then
+            Game.Dong.battery = Game.Dong.battery - 1
+        elseif not(Game.Dong.headphone_on) and Game.Dong.battery < 10 then
+            Game.Dong.battery = Game.Dong.battery + 1
+        end
+    end
+    if detect_collision(Game.Dong.hitbox, Game.enemy.hitbox) and Game.Dong.sanity > 0 then
+        Game.Dong.sanity = Game.Dong.sanity - 1
     end
     Game.enemy:move()
     Game.enemy:draw()
-    if detect_collision(Game.Dong.hitbox, Game.enemy.hitbox) then
-        -- do stuff
+    if detect_collision(Game.Dong.hitbox, Game.enemy.hitbox) and Game.Dong.sanity > 0 then
+        Game.Dong.sanity = Game.Dong.sanity - 1
     end
 end
