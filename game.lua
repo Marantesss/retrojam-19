@@ -8,7 +8,6 @@ endSolidTile = 127
 startSolidTile2 = 224
 endSolidTile2 = 230
 function isSolidTile(tile)
-    Game.dong.battery= tile
 	if (tile >=  startSolidTile and  tile <= endSolidTile) or (tile >= startSolidTile2 and tile <= endSolidTile2) then
 		return true
 	end
@@ -296,7 +295,6 @@ HeadphoneShield = {
     x, y,                                       -- coords
     current_sprite_index,                       -- Sprite indexes
     width, height,                              -- sprite blocks
-    hitbox                                      -- collision
 }
 -- CONSTRUCTOR --
 HeadphoneShield.__index = HeadphoneShield
@@ -308,21 +306,12 @@ function HeadphoneShield:new(x, y)
     hs.x = x - hs.width / 3.8 * Screen.pixels_per_square
     hs.y = y - hs.height / 3.8 * Screen.pixels_per_square
     hs.current_sprite_index = 356
-    hs.hitbox = HitBox:new(hs.x, hs.y, hs.x + hs.width * Screen.pixels_per_square, hs.y + hs.height * Screen.pixels_per_square)
 	return hs
 end
 
 function HeadphoneShield:move(x, y)
     self.x = x - self.width / 3.8 * Screen.pixels_per_square
     self.y = y - self.height / 3.8 * Screen.pixels_per_square
-    local offset_x = self.width * Screen.pixels_per_square
-    local offset_y = self.height * Screen.pixels_per_square
-
-    -- update collision
-    self.hitbox.x1 = x
-    self.hitbox.y1 = y
-    self.hitbox.x2 = x + offset_x
-    self.hitbox.y2 = y + offset_y
 end
 
 function HeadphoneShield:draw()
@@ -402,11 +391,13 @@ function Dong:move()
     or  isSolidTile(mget(new_x // 8,(new_y +16) // 8))
     or  isSolidTile(mget((new_x +8) // 8,new_y // 8))
     or  isSolidTile(mget((new_x +8) // 8 ,(new_y + 16) // 8))
-    then new_x = self.x new_y  = self.y
+    then new_x = self.x new_y = self.y
         --print("ok",0,100)
     else
       self.x = new_x self.y = new_y 
     end
+    -- update headphones
+    self.heaphone_shield:move(self.x, self.y)
     -- update collision
     self.hitbox.x1 = self.x
     self.hitbox.y1 = self.y
@@ -444,9 +435,8 @@ function Dong:action()
 end
 
 -------------------------------------------------
--------------------- Mom -----------------------
+-------------------- MOM -----------------------
 -------------------------------------------------
-
 Mom = {id1 = 352, id2=354, x = 10*8, y = 8*8, xPosMinInteragir = 115, xPosMaxInteragir = 170, drew = 1, flag = 1, msgSize = 7,
 msg={"Hello young Anakin,",
 "this is the reflection tower.",
@@ -457,7 +447,7 @@ msg={"Hello young Anakin,",
 "He has your reflection in a crystal",
 "Good Luck!"}}
 
-function Mom.draw()
+function Mom:draw()
 	--desenhar Mom
 		spr(Mom.id1,Mom.x, Mom.y,Screen.transparent_color, 1, 0, 0, 2, 2) 
 end
@@ -527,8 +517,8 @@ function Game:update()
     self.dong:action()
     self:update_enemies()               -- enemy
     
-    --self:enemy_collision()              -- enemy collisions
-    --self:safe_space_collision()         -- safe space collision
+    self:enemy_collision()              -- enemy collisions
+    self:safe_space_collision()         -- safe space collision
 
     self.time = self.time + 1           -- Update time
 end
