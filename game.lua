@@ -551,8 +551,8 @@ msg={"Hello DONG,",
 "to withdraw ur bitcoin profits",
 "Your crush is also waiting for you",
 "I know that you like your personal space",
-"but please be out of bed for a while",
-"it's good for you"}}
+"as people will deplete your sanity",
+"There safe points in which you can fill it"}}
 
 function Mom:draw()
     --desenhar Mom
