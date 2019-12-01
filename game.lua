@@ -2,6 +2,19 @@
 ------------------- Singleton -------------------
 ----------------- TIC-80 SCREEN -----------------
 -------------------------------------------------
+a = 1
+startSolidTile = 96
+endSolidTile = 127
+startSolidTile2 = 224
+endSolidTile2 = 230
+function isSolidTile(tile)
+    Game.dong.battery= tile
+	if (tile >=  startSolidTile and  tile <= endSolidTile) or (tile >= startSolidTile2 and tile <= endSolidTile2) then
+		return true
+	end
+	return false
+end
+
 Screen = {
 	width = 240, height = 136,		-- 240x136 display
     refresh_rate = 60, 				-- 60Hz refresh rate
@@ -175,12 +188,12 @@ function Enemy:move()
     if Game.time % 4 == 0 then -- move per 
         local new_x = self.x
         local new_y = self.y
-        --if Game.dong.x > self.x then  new_x = self.x + 1
-        --elseif Game.dong.x < self.x then new_x = self.x - 1 end 
-        --if Game.dong.y > self.y then new_y = self.y + 1 
-        --elseif Game.dong.y < self.y then new_y = self.y - 1 end 
-        --local new_x = self.x + math.random(-1,1)
-        --local new_y = self.y + math.random(-1,1)
+        if Game.dong.x > self.x then  new_x = self.x + 1
+        elseif Game.dong.x < self.x then new_x = self.x - 1 end 
+        if Game.dong.y > self.y then new_y = self.y + 1 
+        elseif Game.dong.y < self.y then new_y = self.y - 1 end 
+       -- local new_x = self.x + math.random(-1,1)
+       -- local new_y = self.y + math.random(-1,1)
         local offset_x = self.width * Screen.pixels_per_square;
         local offset_y = self.height * Screen.pixels_per_square;
         -- update reflected
@@ -334,8 +347,8 @@ Dong.__index = Dong
 function Dong:new()
 	local h = {}
     setmetatable(h, Dong)
-    h.x = Screen.width / 2
-    h.y = Screen.height / 2
+    h.x = 1*8
+    h.y = 7*8
     h.width = 2
     h.height = 2
     h.current_sprite_index = 256
@@ -350,7 +363,7 @@ function Dong:new()
 end
 -- METHODS --
 function Dong:draw()
-    spr(self.current_sprite_index, self.x, self.y, Screen.transparent_color, 1, self.reflected, 0, self.width, self.height)
+    spr(self.current_sprite_index, self.x % Screen.width, self.y % Screen.height, Screen.transparent_color, 1, self.reflected, 0, self.width, self.height)
 
     if self.headphones_on then
         self.heaphone_shield:draw()
@@ -385,10 +398,15 @@ function Dong:move()
     end
 
     -- out of bounds
-    if new_x > 0 and new_x + offset_x < Screen.width then self.x = new_x end
-    if new_y > 10 and new_y + offset_y < Screen.height then self.y = new_y end
-    -- update shield
-    self.heaphone_shield:move(self.x, self.y)
+    if  isSolidTile(mget(new_x // 8,new_y // 8)) 
+    or  isSolidTile(mget(new_x // 8,(new_y +16) // 8))
+    or  isSolidTile(mget((new_x +8) // 8,new_y // 8))
+    or  isSolidTile(mget((new_x +8) // 8 ,(new_y + 16) // 8))
+    then new_x = self.x new_y  = self.y
+        --print("ok",0,100)
+    else
+      self.x = new_x self.y = new_y 
+    end
     -- update collision
     self.hitbox.x1 = self.x
     self.hitbox.y1 = self.y
@@ -426,6 +444,25 @@ function Dong:action()
 end
 
 -------------------------------------------------
+-------------------- Mom -----------------------
+-------------------------------------------------
+
+Mom = {id1 = 352, id2=354, x = 10*8, y = 8*8, xPosMinInteragir = 115, xPosMaxInteragir = 170, drew = 1, flag = 1, msgSize = 7,
+msg={"Hello young Anakin,",
+"this is the reflection tower.",
+"Inside you must go through the", 
+"mirrors so that you can enter",
+"the reflection room!!",
+"At the summit you will find the Devil!",
+"He has your reflection in a crystal",
+"Good Luck!"}}
+
+function Mom.draw()
+	--desenhar Mom
+		spr(Mom.id1,Mom.x, Mom.y,Screen.transparent_color, 1, 0, 0, 2, 2) 
+end
+
+-------------------------------------------------
 ------------------ Singleton --------------------
 -------------------- GAME -----------------------
 -------------------------------------------------
@@ -434,6 +471,7 @@ Game = {
     dong = Dong:new(),      -- Dong
     enemies = {},           -- enemies array
     header = Header:new(),  -- Header with game information
+    mom = Mom,
     safe_space = SafeSpace:new(20, 20)
 }
 -- METHODS --
@@ -489,13 +527,17 @@ function Game:update()
     self.dong:action()
     self:update_enemies()               -- enemy
     
-    self:enemy_collision()              -- enemy collisions
-    self:safe_space_collision()         -- safe space collision
+    --self:enemy_collision()              -- enemy collisions
+    --self:safe_space_collision()         -- safe space collision
 
     self.time = self.time + 1           -- Update time
 end
 
 function Game:draw()
+    x = 0+(Game.dong.x  // 240 * 240)
+    y = 0+ (Game.dong.y  // 136 * 136)
+    map(x//8,y//8)
+    --Mom.draw()
     self.header:draw()                  -- header
     self.dong:draw()                    -- dong
     self:draw_enemies()                 -- enemy
