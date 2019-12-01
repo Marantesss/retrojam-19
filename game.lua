@@ -218,7 +218,7 @@ function Dong:move()
     end
     -- out of bounds
     if new_x > 0 and new_x + offset_x < Screen.width then self.x = new_x end
-    if new_y > 8 and new_y + offset_y < Screen.height then self.y = new_y end
+    if new_y > 10 and new_y + offset_y < Screen.height then self.y = new_y end
     -- update collision
     self.hitbox.x1 = new_x
     self.hitbox.y1 = new_y
