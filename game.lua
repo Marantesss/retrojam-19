@@ -17,12 +17,14 @@ function Stage:new()
 end
 function Stage:whereIsStage() 
     self.old_stage = self.stage
-    if Game.cam.x == 0 and Game.cam.x == 0 then
+    if Game.cam.x == 0 and Game.cam.y == 0 then
         self.stage = "room"
-    elseif Game.cam.x >= 240 and Game.cam.x < 720 and Game.cam.y >= 0 and Game.cam.y < 272 or Game.cam.x >= 720 and Game.cam.x < 960 and Game.cam.y >= 0 and Game.cam.y < 136 then
-        self.stage = "street"
-    elseif Game.cam.x >= 720 and Game.cam.x < 960 and Game.cam.y >= 0 and Game.cam.y < 136 then
+    elseif Game.cam.x >= 960 and Game.cam.x < 1200 and Game.cam.y >= 0 and Game.cam.y < 136 then
         self.stage = "dry_cleaners"
+    elseif false then
+        self.stage = "bank"
+    else
+        self.stage = "street"
     end
 
     if(self.old_stage ~= self.stage) then
@@ -174,26 +176,32 @@ function SafeSpace:new(x, y, sprite_index, width, height)
 end
 -- METHODS --
 function SafeSpace:draw()
-    spr(self.sprite_index, self.x % Screen.width, self.y % Screen.height, Screen.transparent_color, 1, self.reflected, 0, self.width, self.height)
+    if(Game.stage.stage == "street") then
+        if (0 + self.x // Screen.width * Screen.width == cam.x and 0 + (self.y // Screen.height * Screen.height) == cam.y) then
+            -- draw Roamer
+            spr(self.sprite_index, self.x % Screen.width, self.y % Screen.height, Screen.transparent_color, 1, 0, 0, self.width, self.height)
+        end
+    end
 end
 
 -------------------------------------------------
--------------------- ENEMY ----------------------
+-------------------- WASHY ----------------------
 -------------------------------------------------
-Enemy = {
+Washy = {
     x, y,                         -- coords
     current_sprite_index,       -- Sprite indexes
     width, height,  -- sprite index and blocks
     hitbox,                       -- collision
     reflected,
-    message_attacks
+    message_attacks,
+    socks,
 }
 
 -- CONSTRUCTOR --
-Enemy.__index = Enemy
-function Enemy:new()
+Washy.__index = Washy
+function Washy:new()
 	local e = {}			  	    -- our new object
-    setmetatable(e, Enemy)	        -- make Enemy handle lookup
+    setmetatable(e, Washy)	        -- make Washy handle lookup
     e.x = 144 * Screen.pixels_per_square
     e.y = 8 * Screen.pixels_per_square
     e.width = 2
@@ -202,24 +210,33 @@ function Enemy:new()
     e.hitbox = HitBox:new(e.x, e.y, e.x + e.width * Screen.pixels_per_square, e.y + e.height * Screen.pixels_per_square)
     e.reflected = 0
     e.message_attacks = {}
+    e.socks = {}
     return e
 end
 
 -- METHODS --
-function Enemy:draw()
+function Washy:draw()
     if(Game.stage.stage == "dry_cleaners") then
         if (0 + self.x // Screen.width * Screen.width == cam.x and 0 + (self.y // Screen.height * Screen.height) == cam.y) then
-            -- draw enemy
+            -- draw Washy
             spr(self.current_sprite_index, self.x % Screen.width, self.y % Screen.height, Screen.transparent_color, 1, self.reflected, 0, self.width, self.height)
             -- draw bullets
             for _,  attack in pairs(self.message_attacks) do
                 attack:draw()
             end
+            -- draw socks
+            for _,  sock in pairs(self.socks) do
+                sock:draw()
+            end
         end
     end
 end
 
-function Enemy:move()
+function Washy:move()
+
+    print(#self.message_attacks, 20, 80)
+    print(#self.socks, 20, 100)
+
     if Game.time % 4 == 0 and Game.stage.stage == "dry_cleaners" then -- move per 
         local new_x = self.x
         local new_y = self.y
@@ -245,47 +262,61 @@ function Enemy:move()
         self.hitbox.y1 = new_y
         self.hitbox.x2 = new_x + offset_x
         self.hitbox.y2 = new_y + offset_y
-    end
-    -- spawn attack every 120 tics (2 seconds)
-    if Game.time % 120 == 0 then
-        self:fire()
-    end
-    -- spawn super attack every 300 tics (5 seconds)
-    if (Game.time + 150) % 300 == 0 then
-        self:super_fire()
-    end
-    -- animate
-    -- change sprite
-    if Game.time % 30 < 15 then self.current_sprite_index = 360
-    else self.current_sprite_index = 362 end
-    
-    -- update attacks
-    local it = 1
-    while it <= #self.message_attacks do
-        self.message_attacks[it]:update()
-        -- attack out of bounds
-        if Game:out_of_bounds(self.message_attacks[it].hitbox) then
-            table.remove(self.message_attacks, it)
-        else
-            it = it + 1
+        -- spawn attack every 120 tics (2 seconds)
+        if Game.time % 120 == 0 then
+            self:fire()
+        end
+        -- spawn super attack every 300 tics (5 seconds)
+        if (Game.time + 150) % 300 == 0 then
+            self:super_fire()
+        end
+        -- animate
+        -- change sprite
+        if Game.time % 30 < 15 then self.current_sprite_index = 360
+        else self.current_sprite_index = 362 end
+        
+        -- update attacks
+        local it = 1
+        while it <= #self.message_attacks do
+            self.message_attacks[it]:update()
+            -- attack out of bounds
+            if Game:out_of_bounds(self.message_attacks[it].hitbox) then
+                table.remove(self.message_attacks, it)
+            else
+                it = it + 1
+            end
+        end
+
+        -- update socks
+        local it = 1
+        while it <= #self.socks do
+            self.socks[it]:update()
+            -- attack out of bounds
+            if Game:out_of_bounds(self.socks[it].hitbox) then
+                table.remove(self.socks, it)
+            else
+                it = it + 1
+            end
         end
     end
+
 end
 
-function Enemy:fire()
+function Washy:fire()
     --get fire direction
     local distance = math.sqrt(math.pow(self.x - Game.dong.x, 2) + math.pow(self.y - Game.dong.y, 2))
     local vx = (Game.dong.x - self.x) / distance
     local vy = (Game.dong.y - self.y) / distance
 
-    table.insert(self.message_attacks, MessagesAttack:new(self.x, self.y, vx, vy))
+    table.insert(self.message_attacks, MessagesAttack:new(self.x, self.y, vx, vy, 319))
+    table.insert(self.socks, Collectible:new(self.x, self.y, math.random(0,1), math.random(0,1), 318))
 end
 
-function Enemy:super_fire()
-    table.insert(self.message_attacks, MessagesAttack:new(self.x, self.y, 1, 0))    -- right
-    table.insert(self.message_attacks, MessagesAttack:new(self.x, self.y, -1, 0))   -- left
-    table.insert(self.message_attacks, MessagesAttack:new(self.x, self.y, 0, -1))   -- up
-    table.insert(self.message_attacks, MessagesAttack:new(self.x, self.y, 0, 1))    -- down
+function Washy:super_fire()
+    table.insert(self.message_attacks, MessagesAttack:new(self.x, self.y, 1, 0, 319))    -- right
+    table.insert(self.message_attacks, MessagesAttack:new(self.x, self.y, -1, 0, 319))   -- left
+    table.insert(self.message_attacks, MessagesAttack:new(self.x, self.y, 0, -1, 319))   -- up
+    table.insert(self.message_attacks, MessagesAttack:new(self.x, self.y, 0, 1, 319))    -- down
 end
 
 -------------------------------------------------
@@ -317,7 +348,7 @@ end
 function Roamer:draw()
     if(Game.stage.stage == "street") then
         if (0 + self.x // Screen.width * Screen.width == cam.x and 0 + (self.y // Screen.height * Screen.height) == cam.y) then
-            -- draw enemy
+            -- draw Roamer
             spr(self.sprite_index, self.x % Screen.width, self.y % Screen.height, Screen.transparent_color, 1, self.reflected, 0, self.width, self.height)
         end
     end
@@ -353,7 +384,7 @@ function Roamer:move()
 end
 
 -------------------------------------------------
----------------- ENEMY ATTACK -------------------
+------------------- ATTACK ----------------------
 -------------------------------------------------
 MessagesAttack = {
     x, y,                         -- coords
@@ -363,7 +394,7 @@ MessagesAttack = {
 }
 -- CONSTRUCTOR --
 MessagesAttack.__index = MessagesAttack
-function MessagesAttack:new(x, y, vx, vy)
+function MessagesAttack:new(x, y, vx, vy, spr)
 	local ma = {}			  	        -- our new object
     setmetatable(ma, MessagesAttack)    -- make MessagesAttack handle lookup
     ma.x = x
@@ -372,7 +403,7 @@ function MessagesAttack:new(x, y, vx, vy)
     ma.vy = vy
     ma.width = 1
     ma.height = 1
-    ma.sprite_index = 416
+    ma.sprite_index = spr
     ma.hitbox = HitBox:new(ma.x, ma.y, ma.x + ma.width * Screen.pixels_per_square, ma.y + ma.height * Screen.pixels_per_square)
 	return ma
 end
@@ -391,6 +422,48 @@ function MessagesAttack:update()
 end
 
 function MessagesAttack:draw()
+    spr(self.sprite_index, self.x, self.y, -1, 1, 0, 0, self.width, self.height)
+end
+
+-------------------------------------------------
+---------------- COLLECTIBLE --------------------
+-------------------------------------------------
+Collectible = {
+    x, y,                         -- coords
+    vx, vy,                       -- speed
+    sprite_index, width, height,  -- sprite index and blocks
+    hitbox,                       -- collision
+}
+-- CONSTRUCTOR --
+Collectible.__index = Collectible
+function Collectible:new(x, y, vx, vy, spr)
+	local ma = {}			  	        -- our new object
+    setmetatable(ma, Collectible)    -- make Collectible handle lookup
+    ma.x = x
+    ma.y = y
+    ma.vx = vx
+    ma.vy = vy
+    ma.width = 1
+    ma.height = 1
+    ma.sprite_index = spr
+    ma.hitbox = HitBox:new(ma.x, ma.y, ma.x + ma.width * Screen.pixels_per_square, ma.y + ma.height * Screen.pixels_per_square)
+	return ma
+end
+-- METHODS --
+function Collectible:update()
+    local offset_x = self.width * Screen.pixels_per_square;
+    local offset_y = self.height * Screen.pixels_per_square;
+    
+    self.x = self.x + self.vx
+    self.y = self.y + self.vy
+    
+    self.hitbox.x1 = self.x
+    self.hitbox.y1 = self.y
+    self.hitbox.x2 = self.x + offset_x
+    self.hitbox.y2 = self.y + offset_y
+end
+
+function Collectible:draw()
     spr(self.sprite_index, self.x, self.y, -1, 1, 0, 0, self.width, self.height)
 end
 
@@ -581,6 +654,7 @@ Game = {
     time = 0,               -- time passed
     dong = Dong:new(),      -- Dong
     enemies = {},           -- enemies array
+    washy = Washy:new(),    -- WASHY WASHY
     header = Header:new(),  -- Header with game information
     mom = Mom,
     safe_spaces = {},
@@ -598,34 +672,40 @@ function Game:out_of_bounds(hit_box)
 end
 
 function Game:reset_enemies()
-    for enemy in pairs(self.enemies) do
-        self.enemies [enemy] = nil
-    end
-    for enemy in pairs(self.roamers) do
-        self.roamers [enemy] = nil
+    self.washy = Washy:new()
+    for Washy in pairs(self.roamers) do
+        self.roamers [Washy] = nil
     end
     init()
 end
 
-function Game:enemy_collision()
-    for _, enemy in pairs(self.enemies) do
-        -- enemy collision
-        if detect_collision(self.dong.hitbox, enemy.hitbox) and self.dong.sanity > 0 then
+function Game:enemies_collision()
+    -- Washy collision
+    if detect_collision(self.dong.hitbox, self.washy.hitbox) and self.dong.sanity > 0 then
+        if not(self.dong.headphones_on) then self.dong.sanity = self.dong.sanity - 1 end
+    end
+    -- word collision
+    local it = 1
+    while it <= #self.washy.message_attacks do
+        if detect_collision(self.dong.hitbox, self.washy.message_attacks[it].hitbox) and self.dong.sanity > 0 then
+            table.remove(self.washy.message_attacks, it)
             if not(self.dong.headphones_on) then self.dong.sanity = self.dong.sanity - 1 end
+        else
+            it = it + 1
         end
-        -- word collision
-        local it = 1
-        while it <= #enemy.message_attacks do
-            if detect_collision(self.dong.hitbox, enemy.message_attacks[it].hitbox) and self.dong.sanity > 0 then
-                table.remove(enemy.message_attacks, it)
-                if not(self.dong.headphones_on) then self.dong.sanity = self.dong.sanity - 1 end
-            else
-                it = it + 1
-            end
+    end
+    -- sock collision
+    local it = 1
+    while it <= #self.washy.socks do
+        if detect_collision(self.dong.hitbox, self.washy.socks[it].hitbox) and self.dong.sanity > 0 then
+            table.remove(self.washy.socks, it)
+            if not(self.dong.headphones_on) then self.dong.sanity = self.dong.sanity - 1 end
+        else
+            it = it + 1
         end
     end
     for _, enemy in pairs(self.roamers) do
-        -- enemy collision
+        -- Washy collision
         if detect_collision(self.dong.hitbox, enemy.hitbox) and self.dong.sanity > 0 then
             if not(self.dong.headphones_on) then self.dong.sanity = self.dong.sanity - 1 end
         end
@@ -633,18 +713,22 @@ function Game:enemy_collision()
 end
 
 function Game:update_enemies()
-    for _, enemy in pairs(self.enemies) do
-        enemy:move()
-    end
+    -- washy
+    self.washy:move()
+    -- bank
+
+    -- roamers
     for _, roamer in pairs(self.roamers) do
         roamer:move()
     end
 end
 
 function Game:draw_enemies()
-    for _, enemy in pairs(self.enemies) do
-        enemy:draw()
-    end
+    -- washy
+    self.washy:draw()
+    -- bank
+
+    -- roamers
     for _, roamer in pairs(self.roamers) do
         roamer:draw()
     end
@@ -666,31 +750,34 @@ end
 
 function Game:update()
     self.header:update()                -- header
+    
     self.dong:move()                    -- dong
     self.dong:action()
-    self:update_enemies()               -- enemy
+
+    self:update_enemies()               -- Washy
+    self:enemies_collision()            -- enemy collisions
     
-    self:enemy_collision()              -- enemy collisions
     self:safe_space_collision()         -- safe space collision
 
-    self.time = self.time + 1           -- Update time
+    self.time = self.time + 1           -- update time
 end
 
 function Game:draw()
-    cam.x = 0 + (Game.dong.x // Screen.width * Screen.width)
-    cam.y = 0 + (Game.dong.y // Screen.height * Screen.height)
-    map(cam.x//8,cam.y//8)
+    self.cam.x = 0 + (Game.dong.x // Screen.width * Screen.width)
+    self.cam.y = 0 + (Game.dong.y // Screen.height * Screen.height)
+    map(self.cam.x//8,self.cam.y//8)
     self.mom:draw()
     self.header:draw()                  -- header
     self.dong:draw()                    -- dong
-    self:draw_enemies()                 -- enemy
+    self:draw_enemies()                 -- Washy
     self:draw_safe_space()              -- safe space
-    --self.safe_space:draw()              -- safe space
-    if(cam.x == 0 and cam.y == 0) then
+
+    if(self.cam.x == 0 and self.cam.y == 0) then
         print("Move",136,72,0)
 		print("Shield",168,72,0)
         print("Skip",208,72,0)
     end
+    print(self.stage.stage, 30, 30)
 end
 
 -------------------------------------------------
@@ -730,9 +817,6 @@ function isSolidTile(tile)
 end
 
 function init()
-    local washy = Enemy:new()
-    table.insert(Game.enemies, washy)
-
     roamer1 = Roamer:new();
     table.insert(Game.roamers, roamer1)
 
