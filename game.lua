@@ -110,6 +110,21 @@ function Bar:draw()
     print(self.level * 10, self.x + 60, 2, 6)
 end
 
+
+function musicByLevel()
+        if (Game.stage.stage == 'street') then
+			music(2,0,0,true)
+		elseif (Game.stage.stage == 'room')then
+			music(2,0,0,true)
+		elseif (Game.stage.stage == 'bank') then
+			music(4,0,0,true)
+		elseif (Game.stage.stage == 'dry_cleaners') then
+            music(4,0,0,true)
+        elseif (Game.stage.stage == 'death') then
+			music(0,0,0,true)
+		end
+end
+
 -------------------------------------------------
 -------------------- HEADER ---------------------
 -------------------------------------------------
@@ -336,14 +351,14 @@ Roamer = {
 
 -- CONSTRUCTOR --
 Roamer.__index = Roamer
-function Roamer:new()
+function Roamer:new(x,y)
 	local e = {}			  	    -- our new object
     setmetatable(e, Roamer)	        -- make Roamer handle lookup
-    e.x = 49 * 8
-    e.y = 7*8
+    e.x = x
+    e.y = y
     e.width = 2
     e.height = 2
-    e.sprite_index = 264
+    e.sprite_index = 384
     e.hitbox = HitBox:new(e.x, e.y, e.x + e.width * Screen.pixels_per_square, e.y + e.height * Screen.pixels_per_square)
     e.reflected = 0
     return e
@@ -770,6 +785,7 @@ function Game:update()
 end
 
 function Game:draw()
+    musicByLevel()
     self.cam.x = 0 + (Game.dong.x // Screen.width * Screen.width)
     self.cam.y = 0 + (Game.dong.y // Screen.height * Screen.height)
     map(self.cam.x//8,self.cam.y//8)
@@ -790,7 +806,7 @@ function Game:draw()
         if(btnp(4)) then
             Game.dong = Dong:new()
         end
-	end
+    end
 end
 
 -------------------------------------------------
@@ -830,12 +846,22 @@ function isSolidTile(tile)
 end
 
 function init()
-    roamer1 = Roamer:new();
+    roamer1 = Roamer:new(45*8,6*8);
+    roamer2 = Roamer:new(72*8,23*8);
+    roamer3 = Roamer:new(75*8,40*8);
+    roamer4 = Roamer:new(60*8,45*8);
+    roamer5 = Roamer:new(41*8,24*8);
     table.insert(Game.roamers, roamer1)
+    table.insert(Game.roamers, roamer2)
+    table.insert(Game.roamers, roamer3)
+    table.insert(Game.roamers, roamer4)
+    table.insert(Game.roamers, roamer5)
 
     -- safe spaces
     local atm = SafeSpace:new(49 * Screen.pixels_per_square, 10 * Screen.pixels_per_square, 288, 2, 3)
+    local atm2 = SafeSpace:new(34 * Screen.pixels_per_square, 43 * Screen.pixels_per_square, 288, 2, 3)
     table.insert(Game.safe_spaces, atm)
+    table.insert(Game.safe_spaces, atm2)
 end
 
 init()
