@@ -204,7 +204,7 @@ end
 -- METHODS --
 function Enemy:draw()
     -- draw enemy
-    spr(self.sprite_index, self.x, self.y, Screen.transparent_color, 1, self.reflected, 0, self.width, self.height)
+    spr(self.current_sprite_index, self.x % Screen.width, self.y % Screen.height, Screen.transparent_color, 1, self.reflected, 0, self.width, self.height)
     -- draw bullets
     for _,  attack in pairs(self.message_attacks) do
         attack:draw()
@@ -226,7 +226,6 @@ function Enemy:move()
         -- update reflected
         self.reflected = math.random(0,1)
         -- out of bounds
-        -- out of bounds
         if solid_tiles(new_x, new_y) then
             new_x = self.x new_y = self.y
             --print("ok",0,100)
@@ -239,17 +238,14 @@ function Enemy:move()
         self.hitbox.x2 = new_x + offset_x
         self.hitbox.y2 = new_y + offset_y
     end
-
     -- spawn attack every 120 tics (2 seconds)
     if Game.time % 120 == 0 then
         self:fire()
     end
-
     -- spawn super attack every 300 tics (5 seconds)
     if (Game.time + 150) % 300 == 0 then
         self:super_fire()
     end
-
     -- animate
     -- change sprite
     if Game.time % 30 < 15 then self.current_sprite_index = 360
@@ -725,9 +721,10 @@ function isSolidTile(tile)
 end
 
 function init()
-    --local e = Enemy:new()
+    local washy = Enemy:new()
+    table.insert(Game.enemies, washy)
+
     roamer1 = Roamer:new();
-    --table.insert(Game.enemies, e)
     table.insert(Game.roamers, roamer1)
 
     -- safe spaces
