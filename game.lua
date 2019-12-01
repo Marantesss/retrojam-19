@@ -7,6 +7,9 @@ startSolidTile = 96
 endSolidTile = 127
 startSolidTile2 = 224
 endSolidTile2 = 230
+cam = {
+    x,y
+}
 function isSolidTile(tile)
 	if (tile >=  startSolidTile and  tile <= endSolidTile) or (tile >= startSolidTile2 and tile <= endSolidTile2) then
 		return true
@@ -360,6 +363,7 @@ function Dong:draw()
 end
 
 function Dong:move()
+    if(Mom.drew == 0) then
     local new_x = self.x
     local new_y = self.y
     local offset_x = self.width * Screen.pixels_per_square
@@ -415,6 +419,7 @@ function Dong:move()
         self.current_sprite_index = self.current_sprite_index + 4
     end
 end
+end
 
 function Dong:action()
     if Keyboard.space_keyp() and self.battery > 0 then
@@ -437,19 +442,36 @@ end
 -------------------------------------------------
 -------------------- MOM -----------------------
 -------------------------------------------------
-Mom = {id1 = 352, id2=354, x = 10*8, y = 8*8, xPosMinInteragir = 115, xPosMaxInteragir = 170, drew = 1, flag = 1, msgSize = 7,
-msg={"Hello young Anakin,",
-"this is the reflection tower.",
-"Inside you must go through the", 
-"mirrors so that you can enter",
-"the reflection room!!",
-"At the summit you will find the Devil!",
-"He has your reflection in a crystal",
-"Good Luck!"}}
+Mom = {id1 = 352, id2=354, x = 10*8, y = 8*8, xPosMinInteragir = 115, xPosMaxInteragir = 170, drew = 1, flag = 1, msgSize = 9,
+msg={"Hello DONG,",
+"why are you still in the bed?",
+"I need you to go to laundry", 
+"to take up some clothes",
+"I also need you to go the bank",
+"to withdraw ur bitcoin profits",
+"Your crush is also waiting for you",
+"I know that you like your personal space",
+"but please be out of bed for a while",
+"it's good for you"}}
 
 function Mom:draw()
-	--desenhar Mom
-		spr(Mom.id1,Mom.x, Mom.y,Screen.transparent_color, 1, 0, 0, 2, 2) 
+    --desenhar Mom
+        if(cam.x == 0 and cam.y == 0) then 
+        spr(Mom.id1,Mom.x, Mom.y,Screen.transparent_color, 1, 0, 0, 2, 2)  end
+        
+        if(Mom.drew == 1) then
+            if a < Mom.msgSize + 1 then
+                print(Mom.msg[a],8,96,0)
+                print(Mom.msg[a+1],8,108,0)
+                if(btnp(4) and (Mom.flag == 0) ) then
+                    a=a+2 end
+                Mom.flag = 0
+            else 
+                a = 1
+                Mom.drew = 0
+                Mom.flag = 1
+            end
+        end
 end
 
 -------------------------------------------------
@@ -524,14 +546,19 @@ function Game:update()
 end
 
 function Game:draw()
-    x = 0+(Game.dong.x  // 240 * 240)
-    y = 0+ (Game.dong.y  // 136 * 136)
-    map(x//8,y//8)
-    --Mom.draw()
+    cam.x = 0+(Game.dong.x  // 240 * 240)
+    cam.y = 0+ (Game.dong.y  // 136 * 136)
+    map(cam.x//8,cam.y//8)
+    Mom.draw()
     self.header:draw()                  -- header
     self.dong:draw()                    -- dong
-    self:draw_enemies()                 -- enemy
-    self.safe_space:draw()              -- safe space
+    --self:draw_enemies()                 -- enemy
+    --self.safe_space:draw()              -- safe space
+    if(cam.x == 0 and cam.y == 0) then
+        print("Move",136,72,0)
+		print("Shield",168,72,0)
+        print("Skip",208,72,0)
+    end
 end
 
 -------------------------------------------------
