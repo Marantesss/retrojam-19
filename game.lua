@@ -107,8 +107,36 @@ end
 Enemy = {
     x, y,                         -- coords
     sprite_index, width, height,  -- sprite index and blocks
-    hitbox                        -- collision
+    hitbox  ,                      -- collision
+    messagesAttack
 }
+MessagesAttack = {
+    x ,y,                         -- coords
+    sprite_index, width, height,  -- sprite index and blocks
+    hitbox,                       -- collision
+    old_x, old_y,                 -- old posiiton
+    was_moving,                   -- was moving
+    go_out_x, go_out_y            -- to go outbounds
+
+}
+MessagesAttack.__index = MessagesAttack
+function MessagesAttack:new(x,y)
+	local e = {}			  	    -- our new object
+    setmetatable(e, MessagesAttack)	        -- make MessagesAttack handle lookup
+    e.x = x
+    e.y = y
+    e.width = 1
+    e.height = 1
+    e.sprite_index = 416
+    e.hitbox = HitBox:new(e.x, e.y, e.x + e.width * Screen.pixels_per_square, e.y + e.height * Screen.pixels_per_square)
+    e.old_x = x
+    e.old_y = y
+    e.was_moving = false
+    e.go_out_x = false
+    e.go_out_y = false
+	return e
+end
+
 -- CONSTRUCTOR --
 Enemy.__index = Enemy
 function Enemy:new()
@@ -120,7 +148,8 @@ function Enemy:new()
     e.height = 2
     e.sprite_index = 1
     e.hitbox = HitBox:new(e.x, e.y, e.x + e.width * Screen.pixels_per_square, e.y + e.height * Screen.pixels_per_square)
-	return e
+    e.messagesAttack = MessagesAttack:new(e.x,e.y)
+    return e
 end
 -- METHODS --
 function Enemy:draw()
@@ -128,9 +157,15 @@ function Enemy:draw()
 end
 
 function Enemy:move()
-    if Game.time % 60 == 0 then -- move per second
-        local new_x = self.x + math.random(-1,1)
-        local new_y = self.y + math.random(-1,1)
+    if Game.time % 4 == 0 then -- move per 
+        local new_x = self.x
+        local new_y = self.y
+        --if Game.hero.x > self.x then  new_x = self.x + 1
+        --elseif Game.hero.x < self.x then new_x = self.x - 1 end 
+        --if Game.hero.y > self.y then new_y = self.y + 1 
+        --elseif Game.hero.y < self.y then new_y = self.y - 1 end 
+       -- local new_x = self.x + math.random(-1,1)
+       -- local new_y = self.y + math.random(-1,1)
         local offset_x = self.width * Screen.pixels_per_square;
         local offset_y = self.height * Screen.pixels_per_square;
         -- out of bounds
@@ -142,6 +177,48 @@ function Enemy:move()
         self.hitbox.x2 = new_x + offset_x
         self.hitbox.y2 = new_y + offset_y
     end
+end
+
+function MessagesAttack:move()
+    print(self.go_out_x,0,100)
+    print(self.go_out_y,0,110)
+    print(self.old_x,0,120)
+    print(self.x,20,120)
+    print(self.old_y,0,130)
+    print(self.y,20,130)
+    print(Game.hero.y, 40,120)
+    print(Game.hero.x, 40,130)
+    --if Game.time % 2 == 0 then
+        local new_x = self.x 
+        local new_y = self.y
+        if self.go_out_x then if self.old_x >= self.x then new_x = self.x-1 else new_x = self.x +1 end end
+        if self.go_out_y then if self.old_y >= self.y then new_y = self.y-1 else new_y = self.y +1 end end
+        if Game.hero.x >= self.x and not self.go_out_x then  new_x = self.x + 1 self.go_out_x = true
+        elseif Game.hero.x < self.x and not self.go_out_x then new_x = self.x - 1 self.go_out_x = true end 
+        if Game.hero.y >= self.y and not self.go_out_y then new_y = self.y + 1 self.go_out_y = true
+        elseif Game.hero.y < self.y and not self.go_out_y then new_y = self.y - 1 self.go_out_y = true end 
+        local offset_x = self.width * Screen.pixels_per_square;
+        local offset_y = self.height * Screen.pixels_per_square;
+        if (new_x > 0 or new_x < 0) and new_x + offset_x < Screen.width then self.x = new_x else resetMessagesAttack(self) end
+        if (new_y > 0 or new_y < 0) and new_y + offset_y < Screen.height then self.y = new_y else resetMessagesAttack(self) end
+        self.hitbox.x1 = new_x
+        self.hitbox.y1 = new_y
+        self.hitbox.x2 = new_x + offset_x
+        self.hitbox.y2 = new_y + offset_y
+   -- end
+end
+
+function resetMessagesAttack(self) 
+    self.x = Game.enemy.x
+    self.y = Game.enemy.y
+    self.old_x = Game.enemy.x
+    self.old_y = Game.enemy.y
+    self.go_out_x = false
+    self.go_out_y = false
+end
+
+function MessagesAttack:draw()
+    spr(self.sprite_index, self.x, self.y, -1, 1, 0, 0, self.width, self.height)
 end
 
 -------------------------------------------------
@@ -210,7 +287,7 @@ Game = {
     time = 0,               -- time passed
     hero = Hero:new(),      -- hero
     enemy = Enemy:new(),    -- enemies array EVENTUALLY
-    header = Header:new()   -- Header with game information
+    header = Header:new(),   -- Header with game information
 }
 
 -------------------------------------------------
@@ -224,11 +301,15 @@ function TIC()
     Game.hero:draw()
     Game.hero:punch()
     if detect_collision(Game.hero.hitbox, Game.enemy.hitbox) then
+        print("ouch")
         -- do stuff
     end
     Game.enemy:move()
     Game.enemy:draw()
-    if detect_collision(Game.hero.hitbox, Game.enemy.hitbox) then
+    Game.enemy.messagesAttack:move()
+    Game.enemy.messagesAttack:draw()
+    if detect_collision(Game.hero.hitbox, Game.enemy.messagesAttack.hitbox) then
+        print("hi")
         -- do stuff
     end
 end
