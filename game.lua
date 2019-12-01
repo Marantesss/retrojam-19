@@ -196,7 +196,7 @@ function Enemy:move()
     end
 
     -- spawn attack every 120 tics (2 seconds)
-    if Game.time % 120 == 0 then
+    if Game.time % 30 == 0 then
         local new_attack = MessagesAttack:new(self.x, self.y)
         table.insert(self.message_attacks, new_attack)
     end
@@ -207,6 +207,7 @@ function Enemy:move()
         self.message_attacks[it]:update()
         -- attack out of bounds
         if Game:out_of_bounds(self.message_attacks[it].hitbox) then
+            print("OUT OF BOUNDS!", 50, 50)
             table.remove(self.message_attacks, it)
         else
             it = it + 1
@@ -245,43 +246,35 @@ function MessagesAttack:new(x,y)
 end
 -- METHODS --
 function MessagesAttack:update()
-    print(self.go_out_x,0,100)
-    print(self.go_out_y,0,110)
-    print(self.old_x,0,120)
-    print(self.x,20,120)
-    print(self.old_y,0,130)
-    print(self.y,20,130)
-    print(Game.dong.y, 40,120)
-    print(Game.dong.x, 40,130)
-    -- if Game.time % 2 == 0 then
-        local new_x = self.x 
-        local new_y = self.y
-        if self.go_out_x then if self.old_x >= self.x then new_x = self.x-1 else new_x = self.x +1 end end
-        if self.go_out_y then if self.old_y >= self.y then new_y = self.y-1 else new_y = self.y +1 end end
-        if Game.dong.x >= self.x and not self.go_out_x then  new_x = self.x + 1 self.go_out_x = true
-        elseif Game.dong.x < self.x and not self.go_out_x then new_x = self.x - 1 self.go_out_x = true end 
-        if Game.dong.y >= self.y and not self.go_out_y then new_y = self.y + 1 self.go_out_y = true
-        elseif Game.dong.y < self.y and not self.go_out_y then new_y = self.y - 1 self.go_out_y = true end 
-        local offset_x = self.width * Screen.pixels_per_square;
-        local offset_y = self.height * Screen.pixels_per_square;
-        if new_x > 0 and new_x + offset_x < Screen.width then self.x = new_x else self:resetMessagesAttack() end
-        if new_y > 0  and new_y + offset_y < Screen.height and self.go_out_x then self.y = new_y else self:resetMessagesAttack() end
-        self.hitbox.x1 = new_x
-        self.hitbox.y1 = new_y
-        self.hitbox.x2 = new_x + offset_x
-        self.hitbox.y2 = new_y + offset_y
-    -- end
+    local new_x = self.x 
+    local new_y = self.y
+    local offset_x = self.width * Screen.pixels_per_square;
+    local offset_y = self.height * Screen.pixels_per_square;
+    
+    if self.go_out_x then if self.old_x >= self.x then new_x = self.x-1 else new_x = self.x +1 end end
+    if self.go_out_y then if self.old_y >= self.y then new_y = self.y-1 else new_y = self.y +1 end end
+    if Game.dong.x >= self.x and not self.go_out_x then  new_x = self.x + 1 self.go_out_x = true
+    elseif Game.dong.x < self.x and not self.go_out_x then new_x = self.x - 1 self.go_out_x = true end 
+    if Game.dong.y >= self.y and not self.go_out_y then new_y = self.y + 1 self.go_out_y = true
+    elseif Game.dong.y < self.y and not self.go_out_y then new_y = self.y - 1 self.go_out_y = true end 
+    
+    self.x = new_x
+    self.y = new_y
+    self.hitbox.x1 = new_x
+    self.hitbox.y1 = new_y
+    self.hitbox.x2 = new_x + offset_x
+    self.hitbox.y2 = new_y + offset_y
 end
---[[
 function MessagesAttack:resetMessagesAttack() 
+    --[[
     self.x = Game.enemy.x
     self.y = Game.enemy.y
     self.old_x = Game.enemy.x
     self.old_y = Game.enemy.y
     self.go_out_x = false
     self.go_out_y = false
+    ]]--
 end
-]]--
 
 function MessagesAttack:draw()
     spr(self.sprite_index, self.x, self.y, -1, 1, 0, 0, self.width, self.height)
@@ -400,10 +393,10 @@ Game = {
 }
 -- METHODS --
 function Game:out_of_bounds(hit_box)
-    if hit_box.x1 < 0 then return true end              -- out of left side
-	if hit_box.x2 > Screen.width then return true end   -- out of right side
-	if hit_box.y1 < 10 then return true end             -- out of upper side
-	if hit_box.y2 > Screen.height then return true end  -- out of lower side
+    if hit_box.x1 < 0 then return true end                  -- out of left side
+	if hit_box.x2 > Screen.width-1 then return true end     -- out of right side
+	if hit_box.y1 < 10 then return true end                 -- out of upper side
+	if hit_box.y2 > Screen.height-1 then return true end    -- out of lower side
 	return false -- if all else fails, hit_box is inside
 end
 
