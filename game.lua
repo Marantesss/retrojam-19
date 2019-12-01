@@ -195,17 +195,27 @@ function Dong:move()
     local new_y = self.y
     local offset_x = self.width * Screen.pixels_per_square
     local offset_y = self.height * Screen.pixels_per_square
+    local is_moving = false
+    self.current_sprite_index = 256
     -- movement
     if Keyboard.a_key() then
         new_x = self.x - 1
         self.reflected = 1
+        is_moving = true
     end
     if Keyboard.d_key() then
         new_x = self.x + 1
         self.reflected = 0
+        is_moving = true
     end
-    if Keyboard.s_key() then new_y = self.y + 1 end
-    if Keyboard.w_key() then new_y = self.y - 1 end
+    if Keyboard.s_key() then
+        new_y = self.y + 1
+        is_moving = true
+    end
+    if Keyboard.w_key() then
+        new_y = self.y - 1
+        is_moving = true
+    end
     -- out of bounds
     if new_x > 0 and new_x + offset_x < Screen.width then self.x = new_x end
     if new_y > 8 and new_y + offset_y < Screen.height then self.y = new_y end
@@ -214,10 +224,14 @@ function Dong:move()
     self.hitbox.y1 = new_y
     self.hitbox.x2 = new_x + offset_x
     self.hitbox.y2 = new_y + offset_y
-    -- animate
-    if Game.time % 30 < 15 then self.current_sprite_index = 256
-    else self.current_sprite_index = 258 end
 
+    -- animate
+    if is_moving then
+        -- change sprite
+        if Game.time % 30 < 15 then self.current_sprite_index = 256
+        else self.current_sprite_index = 258 end
+    end
+    -- headphone
     if self.headphone_on then
         self.current_sprite_index = self.current_sprite_index + 4
     end
