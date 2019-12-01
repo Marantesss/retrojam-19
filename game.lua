@@ -47,8 +47,13 @@ function Header:new()
 	return h
 end
 
+function Header:update()
+    self.sanity.level = Game.Dong.sanity
+    self.battery.level = Game.Dong.battery
+end
+
 -------------------------------------------------
--------------------- SANITY --------------------
+--------------- SANITY & BATTERY ----------------
 -------------------------------------------------
 Bar = {
     x, y,
@@ -70,7 +75,7 @@ function Bar:new(x)
 end
 -- METHODS --
 function Bar:draw()
-    for i=0, self.level-1 do
+    for i=0, self.level - 1 do
         spr(self.sprite_index,self.x+i*8,self.y,-1,1,0,0,self.width,self.height)
     end
 end
@@ -117,7 +122,7 @@ function Enemy:new()
 	local e = {}			  	    -- our new object
     setmetatable(e, Enemy)	        -- make Enemy handle lookup
     e.x = math.random(0, Screen.width)
-    e.y = math.random(0, Screen.height)
+    e.y = math.random(8, Screen.height)
     e.width = 2
     e.height = 2
     e.sprite_index = 264
@@ -249,9 +254,8 @@ Game = {
 ----------------- GAME LOOP ---------------------
 -------------------------------------------------
 function TIC()
-    Game.time = Game.time + 1
-    print(Game.time, 20, 20)
     Screen:clear()
+    Game.header:update()
     Game.header.battery:draw()
     Game.header.sanity:draw()
     print("Battery:", 1, 2, 6)
@@ -276,4 +280,5 @@ function TIC()
     if detect_collision(Game.Dong.hitbox, Game.enemy.hitbox) and Game.Dong.sanity > 0 then
         Game.Dong.sanity = Game.Dong.sanity - 1
     end
+    Game.time = Game.time + 1
 end
