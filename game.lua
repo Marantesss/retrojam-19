@@ -199,8 +199,8 @@ function MessagesAttack:move()
         elseif Game.hero.y < self.y and not self.go_out_y then new_y = self.y - 1 self.go_out_y = true end 
         local offset_x = self.width * Screen.pixels_per_square;
         local offset_y = self.height * Screen.pixels_per_square;
-        if (new_x > 0 or new_x < 0) and new_x + offset_x < Screen.width then self.x = new_x else resetMessagesAttack(self) end
-        if (new_y > 0 or new_y < 0) and new_y + offset_y < Screen.height then self.y = new_y else resetMessagesAttack(self) end
+        if new_x > 0 and new_x + offset_x < Screen.width then self.x = new_x else self:resetMessagesAttack(self) end
+        if new_y > 0  and new_y + offset_y < Screen.height then self.y = new_y else self:resetMessagesAttack(self) end
         self.hitbox.x1 = new_x
         self.hitbox.y1 = new_y
         self.hitbox.x2 = new_x + offset_x
@@ -208,7 +208,7 @@ function MessagesAttack:move()
    -- end
 end
 
-function resetMessagesAttack(self) 
+function MessagesAttack:resetMessagesAttack() 
     self.x = Game.enemy.x
     self.y = Game.enemy.y
     self.old_x = Game.enemy.x
