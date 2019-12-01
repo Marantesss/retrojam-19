@@ -146,7 +146,7 @@ function SafeSpace:new(x, y, sprite_index, width, height)
 end
 -- METHODS --
 function SafeSpace:draw()
-    spr(self.sprite_index, self.x, self.y, Screen.transparent_color, 1, 0, 0, self.width, self.height)
+    spr(self.sprite_index, self.x % Screen.width, self.y % Screen.height, Screen.transparent_color, 1, self.reflected, 0, self.width, self.height)
 end
 
 -------------------------------------------------
@@ -322,7 +322,7 @@ function HeadphoneShield:move(x, y)
 end
 
 function HeadphoneShield:draw()
-    spr(self.current_sprite_index, self.x, self.y, Screen.transparent_color, 1, 0, 0, self.width, self.height)
+    spr(self.current_sprite_index, self.x % Screen.width, self.y % Screen.height, Screen.transparent_color, 1, self.reflected, 0, self.width, self.height)
 end
 
 -------------------------------------------------
