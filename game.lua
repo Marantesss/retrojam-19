@@ -449,14 +449,14 @@ function Game:enemy_collision()
     for _, enemy in pairs(self.enemies) do
         -- enemy collision
         if detect_collision(self.dong.hitbox, enemy.hitbox) and self.dong.sanity > 0 then
-            self.dong.sanity = self.dong.sanity - 1
+            if not(self.dong.headphones_on) then self.dong.sanity = self.dong.sanity - 1 end
         end
         -- word collision
         local it = 1
         while it <= #enemy.message_attacks do
             if detect_collision(self.dong.hitbox, enemy.message_attacks[it].hitbox) and self.dong.sanity > 0 then
                 table.remove(enemy.message_attacks, it)
-                self.dong.sanity = self.dong.sanity - 1
+                if not(self.dong.headphones_on) then self.dong.sanity = self.dong.sanity - 1 end
             else
                 it = it + 1
             end
