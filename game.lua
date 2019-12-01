@@ -8,6 +8,7 @@ cam = {
 Stage = {
     stage, old_stage
 }
+
 Stage.__index = Stage
 function Stage:new()
 	local h = {}			  	        -- our new object
@@ -17,7 +18,9 @@ function Stage:new()
 end
 function Stage:whereIsStage() 
     self.old_stage = self.stage
-    if Game.cam.x == 0 and Game.cam.y == 0 then
+    if Game.cam.x >= 60*8 and Game.cam.x < 90*8 and Game.cam.y >= 51*8 and Game.cam.y < 68*8 then
+        self.stage = "death"
+    elseif Game.cam.x == 0 and Game.cam.y == 0 then
         self.stage = "room"
     elseif Game.cam.x >= 960 and Game.cam.x < 1200 and Game.cam.y >= 0 and Game.cam.y < 136 then
         self.stage = "dry_cleaners"
@@ -130,8 +133,10 @@ function Header:update()
 end
 
 function Header:draw()
+    if(Game.stage.stage ~= "death") then
     self.battery:draw() -- battery
     self.sanity:draw()  -- sanity
+    end
 end
 
 -------------------------------------------------
@@ -355,7 +360,7 @@ function Roamer:draw()
 end
 
 function Roamer:move()
-    if Game.time % 4 == 0 and Game.stage.stage == "street" then -- move per 
+    if Game.time % 4 == 0 and Game.stage.stage == "street"  then -- move per 
         local new_x = self.x
         local new_y = self.y
         if Game.dong.x > self.x then  new_x = self.x + 1
@@ -531,15 +536,17 @@ function Dong:new()
 end
 -- METHODS --
 function Dong:draw()
+    if Game.stage.stage ~= "death" then
     spr(self.current_sprite_index, self.x % Screen.width, self.y % Screen.height, Screen.transparent_color, 1, self.reflected, 0, self.width, self.height)
 
     if self.headphones_on then
         self.heaphone_shield:draw()
     end
 end
+end
 
 function Dong:move()
-    if(Mom.drew == 0) then
+    if(Mom.drew == 0 and Game.stage.stage ~= "death") then
     local new_x = self.x
     local new_y = self.y
     local offset_x = self.width * Screen.pixels_per_square
@@ -624,8 +631,8 @@ msg={"Hello DONG,",
 "to withdraw ur bitcoin profits",
 "Your crush is also waiting for you",
 "I know that you like your personal space",
-"but please be out of bed for a while",
-"it's good for you"}}
+"as people will deplete your sanity",
+"There safe points in which you can fill it"}}
 
 function Mom:draw()
     --desenhar Mom
@@ -777,7 +784,13 @@ function Game:draw()
 		print("Shield",168,72,0)
         print("Skip",208,72,0)
     end
-    print(self.stage.stage, 30, 30)
+    if(Game.stage.stage == "death") then
+
+        print("Press z to start your journey again",22,20,0)
+        if(btnp(4)) then
+            Game.dong = Dong:new()
+        end
+	end
 end
 
 -------------------------------------------------
@@ -829,9 +842,18 @@ init()
 -------------------------------------------------
 ----------------- GAME LOOP ---------------------
 -------------------------------------------------
+
+function isDead()
+    if(Game.dong.sanity == 0) then
+        Game.dong.x = 60*8
+        Game.dong.y = 51*8
+    end
+end
+
 function TIC()
     Screen:clear()
     Game:update()
     Game:draw()
     Game.stage:whereIsStage()
+    isDead()
 end
