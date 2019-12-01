@@ -252,7 +252,7 @@ function Washy:move()
         local offset_x = self.width * Screen.pixels_per_square;
         local offset_y = self.height * Screen.pixels_per_square;
         -- update reflected
-        -- self.reflected = math.random(0,1)
+        self.reflected = math.random(0,1)
         -- out of bounds
         if solid_tiles(new_x, new_y) then
             new_x = self.x new_y = self.y
