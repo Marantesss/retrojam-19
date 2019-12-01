@@ -277,6 +277,46 @@ function MessagesAttack:draw()
 end
 
 -------------------------------------------------
+-------------- HeadphoneShield ------------------
+-------------------------------------------------
+HeadphoneShield = {
+    x, y,                                       -- coords
+    current_sprite_index,                       -- Sprite indexes
+    width, height,                              -- sprite blocks
+    hitbox                                      -- collision
+}
+-- CONSTRUCTOR --
+HeadphoneShield.__index = HeadphoneShield
+function HeadphoneShield:new(x, y)
+	local hs = {}
+    setmetatable(hs, HeadphoneShield)
+    hs.width = 4
+    hs.height = 4
+    hs.x = x - hs.width / 3.8 * Screen.pixels_per_square
+    hs.y = y - hs.height / 3.8 * Screen.pixels_per_square
+    hs.current_sprite_index = 356
+    hs.hitbox = HitBox:new(hs.x, hs.y, hs.x + hs.width * Screen.pixels_per_square, hs.y + hs.height * Screen.pixels_per_square)
+	return hs
+end
+
+function HeadphoneShield:move(x, y)
+    self.x = x - self.width / 3.8 * Screen.pixels_per_square
+    self.y = y - self.height / 3.8 * Screen.pixels_per_square
+    local offset_x = self.width * Screen.pixels_per_square
+    local offset_y = self.height * Screen.pixels_per_square
+
+    -- update collision
+    self.hitbox.x1 = x
+    self.hitbox.y1 = y
+    self.hitbox.x2 = x + offset_x
+    self.hitbox.y2 = y + offset_y
+end
+
+function HeadphoneShield:draw()
+    spr(self.current_sprite_index, self.x, self.y, Screen.transparent_color, 1, 0, 0, self.width, self.height)
+end
+
+-------------------------------------------------
 -------------------- Dong -----------------------
 -------------------------------------------------
 Dong = {  
@@ -286,7 +326,8 @@ Dong = {
     hitbox,                                     -- collision
     reflected,                                  -- reflectd sprite
     sanity, battery,                            -- hp and shiled 
-    headphone_on                                -- headphones
+    headphones_on,                              -- headphones
+    heaphone_shield                             -- protection
 }
 -- CONSTRUCTOR --
 Dong.__index = Dong
@@ -302,13 +343,18 @@ function Dong:new()
     h.reflected = 0
     h.sanity = 10
     h.battery = 10
-    h.headphone_on = false
+    h.headphones_on = false
     h.hitbox = HitBox:new(h.x, h.y, h.x + h.width * Screen.pixels_per_square, h.y + h.height * Screen.pixels_per_square)
-	return h
+    h.heaphone_shield = HeadphoneShield:new(h.x, h.y)
+    return h
 end
 -- METHODS --
 function Dong:draw()
     spr(self.current_sprite_index, self.x, self.y, Screen.transparent_color, 1, self.reflected, 0, self.width, self.height)
+
+    if self.headphones_on then
+        self.heaphone_shield:draw()
+    end
 end
 
 function Dong:move()
@@ -337,14 +383,17 @@ function Dong:move()
         new_y = self.y - 1
         is_moving = true
     end
+
     -- out of bounds
     if new_x > 0 and new_x + offset_x < Screen.width then self.x = new_x end
     if new_y > 10 and new_y + offset_y < Screen.height then self.y = new_y end
+    -- update shield
+    self.heaphone_shield:move(self.x, self.y)
     -- update collision
-    self.hitbox.x1 = new_x
-    self.hitbox.y1 = new_y
-    self.hitbox.x2 = new_x + offset_x
-    self.hitbox.y2 = new_y + offset_y
+    self.hitbox.x1 = self.x
+    self.hitbox.y1 = self.y
+    self.hitbox.x2 = self.x + offset_x
+    self.hitbox.y2 = self.y + offset_y
 
     -- animate
     if is_moving then
@@ -353,24 +402,24 @@ function Dong:move()
         else self.current_sprite_index = 258 end
     end
     -- headphone sprite
-    if self.headphone_on then
+    if self.headphones_on then
         self.current_sprite_index = self.current_sprite_index + 4
     end
 end
 
 function Dong:action()
     if Keyboard.space_keyp() and self.battery > 0 then
-        self.headphone_on = not(self.headphone_on)
+        self.headphones_on = not(self.headphones_on)
     end
     -- if battery is over, take off headphones
     if self.battery == 0 then
-        self.headphone_on = false
+        self.headphones_on = false
     end
     -- update headphone battery
     if Game.time % 60 == 0 then
-        if Game.dong.headphone_on and Game.dong.battery > 0 then
+        if Game.dong.headphones_on and Game.dong.battery > 0 then
             Game.dong.battery = Game.dong.battery - 1
-        elseif not(Game.dong.headphone_on) and Game.dong.battery < 10 then
+        elseif not(Game.dong.headphones_on) and Game.dong.battery < 10 then
             Game.dong.battery = Game.dong.battery + 1
         end
     end
