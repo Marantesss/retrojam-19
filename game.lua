@@ -5,7 +5,8 @@
 Screen = {
 	width = 240, height = 136,		-- 240x136 display
     refresh_rate = 60, 				-- 60Hz refresh rate
-    pixels_per_square = 8           -- pixels per sprite square
+    pixels_per_square = 8,          -- pixels per sprite square
+    transparent_color = 12          -- palette color ID for transparency
 }
 -- clear screen
 function Screen:clear() cls() end
@@ -98,22 +99,40 @@ HitBox = {
 }
 -- CONSTRUCTOR --
 HitBox.__index = HitBox
-function HitBox:new(x1,x2,y1,y2)
+function HitBox:new(x1, y1, x2, y2)
 	local hb = {}			  	-- our new object
     setmetatable(hb, HitBox)	-- make HitBox handle lookup
-    hb.x1 = x1
-    hb.x2 = x2
+    hb.x1 = x1  -- top left coords
     hb.y1 = y1
+    hb.x2 = x2  -- bottom right coords
     hb.y2 = y2
 	return hb
 end
--- METHODS
-function detect_collision(hit_box_1, hit_box_2)
-	if hit_box_1.x1 > hit_box_2.x2 then return false end -- 1 is right of 2
-	if hit_box_1.x2 < hit_box_2.x1 then return false end -- 1 is left of 2
-	if hit_box_1.y1 > hit_box_2.y2 then return false end -- 1 is under 2
-	if hit_box_1.y2 < hit_box_2.y1 then return false end -- 1 is above 2
-	return true -- if all else fails, there has been collision
+
+-------------------------------------------------
+------------------ SAFE SPACE -------------------
+-------------------------------------------------
+SafeSpace = {
+    x, y,                           -- coordinates
+    sprite_index, width, height,    -- sprite index and blocks
+	hitbox                          -- collision
+}
+-- CONSTRUCTOR --
+SafeSpace.__index = SafeSpace
+function SafeSpace:new(x, y)
+	local ss = {}			  	-- our new object
+    setmetatable(ss, SafeSpace)	-- make SafeSpace handle lookup
+    ss.x = x
+    ss.y = y
+    ss.width = 2
+    ss.height = 2
+    ss.sprite_index = 18
+    ss.hitbox = HitBox:new(ss.x, ss.y, ss.x + ss.width * Screen.pixels_per_square, ss.y + ss.height * Screen.pixels_per_square)
+	return ss
+end
+-- METHODS --
+function SafeSpace:draw()
+    spr(self.sprite_index, self.x, self.y, Screen.transparent_color, 1, 0, 0, self.width, self.height)
 end
 
 -------------------------------------------------
@@ -141,7 +160,7 @@ function Enemy:new()
 end
 -- METHODS --
 function Enemy:draw()
-    spr(self.sprite_index, self.x, self.y, 12, 1, self.reflected, 0, self.width, self.height)
+    spr(self.sprite_index, self.x, self.y, Screen.transparent_color, 1, self.reflected, 0, self.width, self.height)
 end
 
 function Enemy:move()
@@ -196,7 +215,7 @@ function Dong:new()
 end
 -- METHODS --
 function Dong:draw()
-    spr(self.current_sprite_index, self.x, self.y, 12, 1, self.reflected, 0, self.width, self.height)
+    spr(self.current_sprite_index, self.x, self.y, Screen.transparent_color, 1, self.reflected, 0, self.width, self.height)
 end
 
 function Dong:move()
@@ -272,26 +291,42 @@ Game = {
     time = 0,               -- time passed
     dong = Dong:new(),      -- Dong
     enemy = Enemy:new(),    -- enemies array EVENTUALLY
-    header = Header:new()   -- Header with game information
+    header = Header:new(),  -- Header with game information
+    safe_space = SafeSpace:new(20, 20)
 }
 -- METHODS --
-function Game:update()
-    self.header:update()    -- header
-    self.dong:move()        -- dong
-    self.dong:action()
-    self.enemy:move()       -- enemy
-    -- collisions
-    if detect_collision(Game.dong.hitbox, Game.enemy.hitbox) and Game.dong.sanity > 0 then
-        Game.dong.sanity = Game.dong.sanity - 1
+function Game:enemy_collision()
+    -- TODO: for loop for all enemies
+    if detect_collision(self.dong.hitbox, self.enemy.hitbox) and self.dong.sanity > 0 then
+        self.dong.sanity = self.dong.sanity - 1
     end
-    -- Update time
-    self.time = self.time + 1
+end
+
+function Game:safe_space_collision()
+    -- TODO: for loop for all safe spaces
+    if detect_collision(self.dong.hitbox, self.safe_space.hitbox) and self.dong.sanity < 10 then
+        self.dong.sanity = self.dong.sanity + 1
+    end
+end
+
+function Game:update()
+    self.header:update()        -- header
+    self.dong:move()            -- dong
+    self.dong:action()
+    self.enemy:move()           -- enemy
+    self.safe_space:draw()      -- safe space
+    
+    self:enemy_collision()      -- enemy collisions
+    self:safe_space_collision() -- safe space collision
+
+    self.time = self.time + 1   -- Update time
 end
 
 function Game:draw()
     self.header:draw()      -- header
     self.dong:draw()        -- dong
     self.enemy:draw()       -- enemy
+    self.safe_space:draw()  -- safe space
 end
 
 -------------------------------------------------
@@ -303,6 +338,13 @@ function tablelength(T)
     return length
 end
 
+function detect_collision(hit_box_1, hit_box_2)
+	if hit_box_1.x1 > hit_box_2.x2 then return false end -- 1 is right of 2
+	if hit_box_1.x2 < hit_box_2.x1 then return false end -- 1 is left of 2
+	if hit_box_1.y1 > hit_box_2.y2 then return false end -- 1 is under 2
+	if hit_box_1.y2 < hit_box_2.y1 then return false end -- 1 is above 2
+	return true -- if all else fails, there has been collision
+end
 -------------------------------------------------
 ----------------- GAME LOOP ---------------------
 -------------------------------------------------
