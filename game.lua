@@ -196,9 +196,13 @@ function Enemy:move()
     end
 
     -- spawn attack every 120 tics (2 seconds)
-    if Game.time % 30 == 0 then
-        local new_attack = MessagesAttack:new(self.x, self.y)
-        table.insert(self.message_attacks, new_attack)
+    if Game.time % 120 == 0 then
+        self:fire()
+    end
+
+    -- spawn super attack every 300 tics (5 seconds)
+    if (Game.time + 150) % 300 == 0 then
+        self:super_fire()
     end
     
     -- update attacks
@@ -207,7 +211,6 @@ function Enemy:move()
         self.message_attacks[it]:update()
         -- attack out of bounds
         if Game:out_of_bounds(self.message_attacks[it].hitbox) then
-            print("OUT OF BOUNDS!", 50, 50)
             table.remove(self.message_attacks, it)
         else
             it = it + 1
@@ -215,65 +218,58 @@ function Enemy:move()
     end
 end
 
+function Enemy:fire()
+    --get fire direction
+    local distance = math.sqrt(math.pow(self.x - Game.dong.x, 2) + math.pow(self.y - Game.dong.y, 2))
+    local vx = (Game.dong.x - self.x) / distance
+    local vy = (Game.dong.y - self.y) / distance
+
+    table.insert(self.message_attacks, MessagesAttack:new(self.x, self.y, vx, vy))
+end
+
+function Enemy:super_fire()
+    table.insert(self.message_attacks, MessagesAttack:new(self.x, self.y, 1, 0))    -- right
+    table.insert(self.message_attacks, MessagesAttack:new(self.x, self.y, -1, 0))   -- left
+    table.insert(self.message_attacks, MessagesAttack:new(self.x, self.y, 0, -1))   -- up
+    table.insert(self.message_attacks, MessagesAttack:new(self.x, self.y, 0, 1))    -- down
+end
+
 -------------------------------------------------
 ---------------- ENEMY ATTACK -------------------
 -------------------------------------------------
 MessagesAttack = {
-    x ,y,                         -- coords
+    x, y,                         -- coords
+    vx, vy,                       -- speed
     sprite_index, width, height,  -- sprite index and blocks
     hitbox,                       -- collision
-    old_x, old_y,                 -- old posiiton
-    was_moving,                   -- was moving
-    go_out_x, go_out_y            -- to go outbounds
 }
 -- CONSTRUCTOR --
 MessagesAttack.__index = MessagesAttack
-function MessagesAttack:new(x,y)
-	local e = {}			  	    -- our new object
-    setmetatable(e, MessagesAttack)	        -- make MessagesAttack handle lookup
-    e.x = x
-    e.y = y
-    e.width = 1
-    e.height = 1
-    e.sprite_index = 416
-    e.hitbox = HitBox:new(e.x, e.y, e.x + e.width * Screen.pixels_per_square, e.y + e.height * Screen.pixels_per_square)
-    e.old_x = x
-    e.old_y = y
-    e.was_moving = false
-    e.go_out_x = false
-    e.go_out_y = false
-	return e
+function MessagesAttack:new(x, y, vx, vy)
+	local ma = {}			  	        -- our new object
+    setmetatable(ma, MessagesAttack)    -- make MessagesAttack handle lookup
+    ma.x = x
+    ma.y = y
+    ma.vx = vx
+    ma.vy = vy
+    ma.width = 1
+    ma.height = 1
+    ma.sprite_index = 416
+    ma.hitbox = HitBox:new(ma.x, ma.y, ma.x + ma.width * Screen.pixels_per_square, ma.y + ma.height * Screen.pixels_per_square)
+	return ma
 end
 -- METHODS --
 function MessagesAttack:update()
-    local new_x = self.x 
-    local new_y = self.y
     local offset_x = self.width * Screen.pixels_per_square;
     local offset_y = self.height * Screen.pixels_per_square;
     
-    if self.go_out_x then if self.old_x >= self.x then new_x = self.x-1 else new_x = self.x +1 end end
-    if self.go_out_y then if self.old_y >= self.y then new_y = self.y-1 else new_y = self.y +1 end end
-    if Game.dong.x >= self.x and not self.go_out_x then  new_x = self.x + 1 self.go_out_x = true
-    elseif Game.dong.x < self.x and not self.go_out_x then new_x = self.x - 1 self.go_out_x = true end 
-    if Game.dong.y >= self.y and not self.go_out_y then new_y = self.y + 1 self.go_out_y = true
-    elseif Game.dong.y < self.y and not self.go_out_y then new_y = self.y - 1 self.go_out_y = true end 
+    self.x = self.x + self.vx
+    self.y = self.y + self.vy
     
-    self.x = new_x
-    self.y = new_y
-    self.hitbox.x1 = new_x
-    self.hitbox.y1 = new_y
-    self.hitbox.x2 = new_x + offset_x
-    self.hitbox.y2 = new_y + offset_y
-end
-function MessagesAttack:resetMessagesAttack() 
-    --[[
-    self.x = Game.enemy.x
-    self.y = Game.enemy.y
-    self.old_x = Game.enemy.x
-    self.old_y = Game.enemy.y
-    self.go_out_x = false
-    self.go_out_y = false
-    ]]--
+    self.hitbox.x1 = self.x
+    self.hitbox.y1 = self.y
+    self.hitbox.x2 = self.x + offset_x
+    self.hitbox.y2 = self.y + offset_y
 end
 
 function MessagesAttack:draw()
@@ -402,8 +398,19 @@ end
 
 function Game:enemy_collision()
     for _, enemy in pairs(self.enemies) do
+        -- enemy collision
         if detect_collision(self.dong.hitbox, enemy.hitbox) and self.dong.sanity > 0 then
             self.dong.sanity = self.dong.sanity - 1
+        end
+        -- word collision
+        local it = 1
+        while it <= #enemy.message_attacks do
+            if detect_collision(self.dong.hitbox, enemy.message_attacks[it].hitbox) and self.dong.sanity > 0 then
+                table.remove(enemy.message_attacks, it)
+                self.dong.sanity = self.dong.sanity - 1
+            else
+                it = it + 1
+            end
         end
     end
 end
