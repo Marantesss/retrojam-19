@@ -2,23 +2,25 @@
 ------------------- Singleton -------------------
 ----------------- TIC-80 SCREEN -----------------
 -------------------------------------------------
-a = 1
-startSolidTile = 96
-endSolidTile = 127
-startSolidTile2 = 224
-endSolidTile2 = 230
-function isSolidTile(tile)
-	if (tile >=  startSolidTile and  tile <= endSolidTile) or (tile >= startSolidTile2 and tile <= endSolidTile2) then
-		return true
-	end
-	return false
-end
-
 Screen = {
 	width = 240, height = 136,		-- 240x136 display
     refresh_rate = 60, 				-- 60Hz refresh rate
     pixels_per_square = 8,          -- pixels per sprite square
-    transparent_color = 12          -- palette color ID for transparency
+    transparent_color = 12,         -- palette color ID for transparency
+    -- MAPS
+    -- room
+    stage_0_0 = {x1 = 0, y1 = 0, x2 = 30 * 8 - 1, y2 = 17 * 8 - 1},
+    -- top street
+    stage_1_0 = {x1 = 30 * 8 * 1, y1 = 0, x2 = 30 * 8 * 2 - 1, y2 = 17 * 8 - 1},
+    stage_2_0 = {x1 = 30 * 8 * 2, y1 = 0, x2 = 30 * 8 * 3 - 1, y2 = 17 * 8 - 1},
+    stage_3_0 = {x1 = 30 * 8 * 3, y1 = 0, x2 = 30 * 8 * 4 - 1, y2 = 17 * 8 - 1},
+    -- dry cleaners
+    stage_4_0 = {x1 = 30 * 8 * 4, y1 = 0, x2 = 30 * 8 * 5 - 1, y2 = 17 * 8 - 1},
+    -- middle street
+    stage_1_1 = {x1 = 30 * 8 * 1, y1 = 17 * 8 * 1, x2 = 30 * 8 * 2 - 1, y2 = 17 * 8 * 2 - 1},
+    stage_2_2 = {x1 = 30 * 8 * 2, y1 = 17 * 8 * 1, x2 = 30 * 8 * 3 - 1, y2 = 17 * 8 * 2 - 1},
+    stage_3_3 = {x1 = 30 * 8 * 3, y1 = 17 * 8 * 1, x2 = 30 * 8 * 4 - 1, y2 = 17 * 8 * 2 - 1}
+    -- bank
 }
 -- clear screen
 function Screen:clear() cls() end
@@ -198,8 +200,13 @@ function Enemy:move()
         -- update reflected
         self.reflected = math.random(0,1)
         -- out of bounds
-        if new_x > 0 and new_x + offset_x < Screen.width then self.x = new_x end
-        if new_y > 8 and new_y + offset_y < Screen.height then self.y = new_y end
+        -- out of bounds
+        if solid_tiles(new_x, new_y) then
+            new_x = self.x new_y = self.y
+            --print("ok",0,100)
+        else
+            self.x = new_x self.y = new_y 
+        end
         -- update collision
         self.hitbox.x1 = new_x
         self.hitbox.y1 = new_y
@@ -387,11 +394,8 @@ function Dong:move()
     end
 
     -- out of bounds
-    if  isSolidTile(mget(new_x // 8,new_y // 8)) 
-    or  isSolidTile(mget(new_x // 8,(new_y +16) // 8))
-    or  isSolidTile(mget((new_x +8) // 8,new_y // 8))
-    or  isSolidTile(mget((new_x +8) // 8 ,(new_y + 16) // 8))
-    then new_x = self.x new_y = self.y
+    if solid_tiles(new_x, new_y) then
+        new_x = self.x new_y = self.y
         --print("ok",0,100)
     else
       self.x = new_x self.y = new_y 
@@ -524,8 +528,8 @@ function Game:update()
 end
 
 function Game:draw()
-    x = 0+(Game.dong.x  // 240 * 240)
-    y = 0+ (Game.dong.y  // 136 * 136)
+    x = 0 + (Game.dong.x // Screen.width * Screen.width)
+    y = 0 + (Game.dong.y // Screen.height * Screen.height)
     map(x//8,y//8)
     --Mom.draw()
     self.header:draw()                  -- header
@@ -549,6 +553,25 @@ function detect_collision(hit_box_1, hit_box_2)
 	if hit_box_1.y1 > hit_box_2.y2 then return false end -- 1 is under 2
 	if hit_box_1.y2 < hit_box_2.y1 then return false end -- 1 is above 2
 	return true -- if all else fails, there has been collision
+end
+
+function solid_tiles(new_x, new_y)
+    return isSolidTile(mget(new_x // 8,new_y // 8)) 
+    or  isSolidTile(mget(new_x // 8,(new_y +16) // 8))
+    or  isSolidTile(mget((new_x +8) // 8,new_y // 8))
+    or  isSolidTile(mget((new_x +8) // 8 ,(new_y + 16) // 8)) 
+end
+
+a = 1
+startSolidTile = 96
+endSolidTile = 127
+startSolidTile2 = 224
+endSolidTile2 = 230
+function isSolidTile(tile)
+	if (tile >=  startSolidTile and  tile <= endSolidTile) or (tile >= startSolidTile2 and tile <= endSolidTile2) then
+		return true
+	end
+	return false
 end
 
 function init()
