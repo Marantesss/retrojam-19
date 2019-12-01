@@ -17,15 +17,19 @@ function Stage:new()
 end
 function Stage:whereIsStage() 
     self.old_stage = self.stage
-    if Game.cam.x == 0 and Game.cam.x == 0 then self.stage = "room"
-    elseif Game.cam.x >= 240 and Game.cam.x < 720 and Game.cam.y >= 0 and Game.cam.y < 272 or
-     Game.cam.x >= 720 and Game.cam.x < 960 and Game.cam.y >= 0 and Game.cam.y < 136 then
-        self.stage = "street" 
+    if Game.cam.x == 0 and Game.cam.x == 0 then
+        self.stage = "room"
+    elseif Game.cam.x >= 240 and Game.cam.x < 720 and Game.cam.y >= 0 and Game.cam.y < 272 or Game.cam.x >= 720 and Game.cam.x < 960 and Game.cam.y >= 0 and Game.cam.y < 136 then
+        self.stage = "street"
+    elseif Game.cam.x >= 720 and Game.cam.x < 960 and Game.cam.y >= 0 and Game.cam.y < 136 then
+        self.stage = "dry_cleaners"
+    end
+
     if(self.old_stage ~= self.stage) then
         Game:reset_enemies()
     end
-    end
 end
+
 Screen = {
 	width = 240, height = 136,		-- 240x136 display
     refresh_rate = 60, 				-- 60Hz refresh rate
@@ -203,16 +207,20 @@ end
 
 -- METHODS --
 function Enemy:draw()
-    -- draw enemy
-    spr(self.current_sprite_index, self.x % Screen.width, self.y % Screen.height, Screen.transparent_color, 1, self.reflected, 0, self.width, self.height)
-    -- draw bullets
-    for _,  attack in pairs(self.message_attacks) do
-        attack:draw()
+    if(Game.stage.stage == "dry_cleaners") then
+        if (0 + self.x // Screen.width * Screen.width == cam.x and 0 + (self.y // Screen.height * Screen.height) == cam.y) then
+            -- draw enemy
+            spr(self.current_sprite_index, self.x % Screen.width, self.y % Screen.height, Screen.transparent_color, 1, self.reflected, 0, self.width, self.height)
+            -- draw bullets
+            for _,  attack in pairs(self.message_attacks) do
+                attack:draw()
+            end
+        end
     end
 end
 
 function Enemy:move()
-    if Game.time % 4 == 0 then -- move per 
+    if Game.time % 4 == 0 and Game.stage.stage == "dry_cleaners" then -- move per 
         local new_x = self.x
         local new_y = self.y
         if Game.dong.x > self.x then  new_x = self.x + 1
@@ -308,11 +316,11 @@ end
 -- METHODS --
 function Roamer:draw()
     if(Game.stage.stage == "street") then
-        if(0+ self.x // Screen.width * Screen.width == cam.x and 0 + (self.y // Screen.height * Screen.height) == cam.y) then
-    -- draw enemy
-    spr(self.sprite_index, self.x%240, self.y%136, Screen.transparent_color, 1, self.reflected, 0, self.width, self.height)
+        if (0 + self.x // Screen.width * Screen.width == cam.x and 0 + (self.y // Screen.height * Screen.height) == cam.y) then
+            -- draw enemy
+            spr(self.sprite_index, self.x % Screen.width, self.y % Screen.height, Screen.transparent_color, 1, self.reflected, 0, self.width, self.height)
+        end
     end
-end
 end
 
 function Roamer:move()
@@ -329,7 +337,6 @@ function Roamer:move()
         local offset_y = self.height * Screen.pixels_per_square;
         -- update reflected
         self.reflected = math.random(0,1)
-        -- out of bounds
         -- out of bounds
         if solid_tiles(new_x, new_y) then
             new_x = self.x new_y = self.y
