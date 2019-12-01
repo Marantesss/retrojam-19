@@ -308,9 +308,11 @@ end
 -- METHODS --
 function Roamer:draw()
     if(Game.stage.stage == "street") then
+        if(0+ self.x // Screen.width * Screen.width == cam.x and 0 + (self.y // Screen.height * Screen.height) == cam.y) then
     -- draw enemy
     spr(self.sprite_index, self.x%240, self.y%136, Screen.transparent_color, 1, self.reflected, 0, self.width, self.height)
     end
+end
 end
 
 function Roamer:move()
