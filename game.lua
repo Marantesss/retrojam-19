@@ -31,6 +31,38 @@ function Keyboard:space_key() return key(48) end
 function Keyboard:space_keyp() return keyp(48) end
 
 -------------------------------------------------
+--------------- SANITY & BATTERY ----------------
+-------------------------------------------------
+Bar = {
+    x, y,
+    sprite_index,
+    width, height,
+    title, level 
+}
+-- CONSTRUCTOR --
+Bar.__index = Bar
+function Bar:new(title, x)
+	local b = {}			  	-- our new object
+    setmetatable(b, Bar)	-- make Bar handle lookup
+    b.x = x
+    b.y = 0
+    b.width = 1
+    b.height = 1
+    b.title = title
+    b.sprite_index = 1
+    b.level = 10
+	return b
+end
+-- METHODS --
+function Bar:draw()
+    for i=0, self.level - 1 do
+        spr(self.sprite_index,self.x+i*8,self.y,-1,1,0,0,self.width,self.height)
+    end
+    print(self.title, self.x + 2, 2, 6)
+    print(self.level * 10, self.x + 60, 2, 6)
+end
+
+-------------------------------------------------
 -------------------- HEADER ---------------------
 -------------------------------------------------
 Header = {
@@ -42,42 +74,19 @@ Header.__index = Header
 function Header:new()
 	local h = {}			  	-- our new object
     setmetatable(h, Header)	-- make Header handle lookup
-    h.sanity = Bar:new(100)
-    h.battery = Bar:new(0)
+    h.sanity = Bar:new("Sanity", 100)
+    h.battery = Bar:new("Battery", 0)
 	return h
 end
-
-function Header:update()
-    self.sanity.level = Game.Dong.sanity
-    self.battery.level = Game.Dong.battery
-end
-
--------------------------------------------------
---------------- SANITY & BATTERY ----------------
--------------------------------------------------
-Bar = {
-    x, y,
-    sprite_index, width, height,
-    level
-}
--- CONSTRUCTOR --
-Bar.__index = Bar
-function Bar:new(x)
-	local b = {}			  	-- our new object
-    setmetatable(b, Bar)	-- make Bar handle lookup
-    b.x = x
-    b.y = 0
-    b.width = 1
-    b.height = 1
-    b.sprite_index = 1
-    b.level = 10
-	return b
-end
 -- METHODS --
-function Bar:draw()
-    for i=0, self.level - 1 do
-        spr(self.sprite_index,self.x+i*8,self.y,-1,1,0,0,self.width,self.height)
-    end
+function Header:update()
+    self.sanity.level = Game.dong.sanity
+    self.battery.level = Game.dong.battery
+end
+
+function Header:draw()
+    self.battery:draw() -- battery
+    self.sanity:draw()  -- sanity
 end
 
 -------------------------------------------------
@@ -245,12 +254,14 @@ function Dong:action()
     if self.battery == 0 then
         self.headphone_on = false
     end
-end
 
-function tablelength(T)
-    local length = 0
-    for _ in pairs(T) do length = length + 1 end
-    return length
+    if Game.time % 60 == 0 then
+        if Game.dong.headphone_on and Game.dong.battery > 0 then
+            Game.dong.battery = Game.dong.battery - 1
+        elseif not(Game.dong.headphone_on) and Game.dong.battery < 10 then
+            Game.dong.battery = Game.dong.battery + 1
+        end
+    end
 end
 
 -------------------------------------------------
@@ -259,40 +270,44 @@ end
 -------------------------------------------------
 Game = {
     time = 0,               -- time passed
-    Dong = Dong:new(),      -- Dong
+    dong = Dong:new(),      -- Dong
     enemy = Enemy:new(),    -- enemies array EVENTUALLY
     header = Header:new()   -- Header with game information
 }
+-- METHODS --
+function Game:update()
+    self.header:update()    -- header
+    self.dong:move()        -- dong
+    self.dong:action()
+    self.enemy:move()       -- enemy
+    -- collisions
+    if detect_collision(Game.dong.hitbox, Game.enemy.hitbox) and Game.dong.sanity > 0 then
+        Game.dong.sanity = Game.dong.sanity - 1
+    end
+    -- Update time
+    self.time = self.time + 1
+end
+
+function Game:draw()
+    self.header:draw()      -- header
+    self.dong:draw()        -- dong
+    self.enemy:draw()       -- enemy
+end
+
+-------------------------------------------------
+-------------------- UTILS ----------------------
+-------------------------------------------------
+function tablelength(T)
+    local length = 0
+    for _ in pairs(T) do length = length + 1 end
+    return length
+end
 
 -------------------------------------------------
 ----------------- GAME LOOP ---------------------
 -------------------------------------------------
 function TIC()
     Screen:clear()
-    Game.header:update()
-    Game.header.battery:draw()
-    Game.header.sanity:draw()
-    print("Battery:", 1, 2, 6)
-    print(Game.Dong.battery*10, 48, 2, 6)
-    print("Sanity:", 101, 2, 6)
-    print(Game.Dong.sanity*10, 138, 2, 6)
-    Game.Dong:move()
-    Game.Dong:draw()
-    Game.Dong:action()
-    if Game.time % 60 == 0 then
-        if Game.Dong.headphone_on and Game.Dong.battery > 0 then
-            Game.Dong.battery = Game.Dong.battery - 1
-        elseif not(Game.Dong.headphone_on) and Game.Dong.battery < 10 then
-            Game.Dong.battery = Game.Dong.battery + 1
-        end
-    end
-    if detect_collision(Game.Dong.hitbox, Game.enemy.hitbox) and Game.Dong.sanity > 0 then
-        Game.Dong.sanity = Game.Dong.sanity - 1
-    end
-    Game.enemy:move()
-    Game.enemy:draw()
-    if detect_collision(Game.Dong.hitbox, Game.enemy.hitbox) and Game.Dong.sanity > 0 then
-        Game.Dong.sanity = Game.Dong.sanity - 1
-    end
-    Game.time = Game.time + 1
+    Game:update()
+    Game:draw()
 end
