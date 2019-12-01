@@ -585,25 +585,13 @@ function Game:out_of_bounds(hit_box)
 end
 
 function Game:reset_enemies()
-    for _, enemy in pairs(self.enemies) do
-        -- enemy collision
-        if detect_collision(self.dong.hitbox, enemy.hitbox) and self.dong.sanity > 0 then
-            if not(self.dong.headphones_on) then self.dong.sanity = self.dong.sanity - 1 end
-        end
-        -- word collision
-        local it = 1
-        while it <= #enemy.message_attacks do
-            if detect_collision(self.dong.hitbox, enemy.message_attacks[it].hitbox) and self.dong.sanity > 0 then
-                table.remove(enemy.message_attacks, it)
-                if not(self.dong.headphones_on) then self.dong.sanity = self.dong.sanity - 1 end
-            else
-                it = it + 1
-            end
-        end
+    for enemy in pairs(self.enemies) do
+        self.enemies [enemy] = nil
     end
-    for _, enemy in pairs(self.roamers) do
-        enemy = Roamer:new()
+    for enemy in pairs(self.roamers) do
+        self.roamers [enemy] = nil
     end
+    init()
 end
 
 function Game:enemy_collision()
@@ -722,7 +710,7 @@ end
 
 function init()
     --local e = Enemy:new()
-    local roamer1 = Roamer:new();
+    roamer1 = Roamer:new();
     table.insert(Game.enemies, e)
     table.insert(Game.roamers, roamer1)
     
