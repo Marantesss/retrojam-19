@@ -133,14 +133,14 @@ SafeSpace = {
 }
 -- CONSTRUCTOR --
 SafeSpace.__index = SafeSpace
-function SafeSpace:new(x, y)
+function SafeSpace:new(x, y, sprite_index, width, height)
 	local ss = {}			  	-- our new object
     setmetatable(ss, SafeSpace)	-- make SafeSpace handle lookup
     ss.x = x
     ss.y = y
-    ss.width = 2
-    ss.height = 2
-    ss.sprite_index = 18
+    ss.width = width
+    ss.height = height
+    ss.sprite_index = sprite_index
     ss.hitbox = HitBox:new(ss.x, ss.y, ss.x + ss.width * Screen.pixels_per_square, ss.y + ss.height * Screen.pixels_per_square)
 	return ss
 end
@@ -466,7 +466,7 @@ Game = {
     enemies = {},           -- enemies array
     header = Header:new(),  -- Header with game information
     mom = Mom,
-    safe_space = SafeSpace:new(20, 20)
+    safe_spaces = {}
 }
 -- METHODS --
 function Game:out_of_bounds(hit_box)
@@ -496,13 +496,6 @@ function Game:enemy_collision()
     end
 end
 
-function Game:safe_space_collision()
-    -- TODO: for loop for all safe spaces
-    if detect_collision(self.dong.hitbox, self.safe_space.hitbox) and self.dong.sanity < 10 then
-        self.dong.sanity = self.dong.sanity + 1
-    end
-end
-
 function Game:update_enemies()
     for _, enemy in pairs(self.enemies) do
         enemy:move()
@@ -512,6 +505,20 @@ end
 function Game:draw_enemies()
     for _, enemy in pairs(self.enemies) do
         enemy:draw()
+    end
+end
+
+function Game:safe_space_collision()
+    for _, safe_space in pairs(self.safe_spaces) do
+        if detect_collision(self.dong.hitbox, safe_space.hitbox) and self.dong.sanity < 10 then
+            self.dong.sanity = self.dong.sanity + 1
+        end
+    end
+end
+
+function Game:draw_safe_space()
+    for _, safe_space in pairs(self.safe_spaces) do
+        safe_space:draw()
     end
 end
 
@@ -535,7 +542,7 @@ function Game:draw()
     self.header:draw()                  -- header
     self.dong:draw()                    -- dong
     self:draw_enemies()                 -- enemy
-    self.safe_space:draw()              -- safe space
+    self:draw_safe_space()              -- safe space
 end
 
 -------------------------------------------------
@@ -575,8 +582,13 @@ function isSolidTile(tile)
 end
 
 function init()
+    -- enemies
     local e = Enemy:new()
     table.insert(Game.enemies, e)
+
+    -- safe spaces
+    local atm = SafeSpace:new(49 * Screen.pixels_per_square, 10 * Screen.pixels_per_square, 288, 2, 3)
+    table.insert(Game.safe_spaces, atm)
 end
 
 init()
