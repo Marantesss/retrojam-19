@@ -2,6 +2,30 @@
 ------------------- Singleton -------------------
 ----------------- TIC-80 SCREEN -----------------
 -------------------------------------------------
+cam = {
+    x,y
+}
+Stage = {
+    stage, old_stage
+}
+Stage.__index = Stage
+function Stage:new()
+	local h = {}			  	        -- our new object
+    setmetatable(h, Stage)	            -- make Stage handle lookup
+    h.stage = "room"
+    return h
+end
+function Stage:whereIsStage() 
+    self.old_stage = self.stage
+    if Game.cam.x == 0 and Game.cam.x == 0 then self.stage = "room"
+    elseif Game.cam.x >= 240 and Game.cam.x < 720 and Game.cam.y >= 0 and Game.cam.y < 272 or
+     Game.cam.x >= 720 and Game.cam.x < 960 and Game.cam.y >= 0 and Game.cam.y < 136 then
+        self.stage = "street" 
+    if(self.old_stage ~= self.stage) then
+        Game:reset_enemies()
+    end
+    end
+end
 Screen = {
 	width = 240, height = 136,		-- 240x136 display
     refresh_rate = 60, 				-- 60Hz refresh rate
@@ -175,6 +199,7 @@ function Enemy:new()
     e.message_attacks = {}
     return e
 end
+
 -- METHODS --
 function Enemy:draw()
     -- draw enemy
@@ -251,6 +276,67 @@ function Enemy:super_fire()
     table.insert(self.message_attacks, MessagesAttack:new(self.x, self.y, -1, 0))   -- left
     table.insert(self.message_attacks, MessagesAttack:new(self.x, self.y, 0, -1))   -- up
     table.insert(self.message_attacks, MessagesAttack:new(self.x, self.y, 0, 1))    -- down
+end
+
+
+Roamer = {
+    x, y,                         -- coords
+    sprite_index, width, height,  -- sprite index and blocks
+    hitbox,                       -- collision
+    reflected
+}
+
+-- CONSTRUCTOR --
+Roamer.__index = Roamer
+function Roamer:new()
+	local e = {}			  	    -- our new object
+    setmetatable(e, Roamer)	        -- make Roamer handle lookup
+    e.x = 49 * 8
+    e.y = 7*8
+    e.width = 2
+    e.height = 2
+    e.sprite_index = 264
+    e.hitbox = HitBox:new(e.x, e.y, e.x + e.width * Screen.pixels_per_square, e.y + e.height * Screen.pixels_per_square)
+    e.reflected = 0
+    return e
+end
+
+-- METHODS --
+function Roamer:draw()
+    if(Game.stage.stage == "street") then
+    -- draw enemy
+    spr(self.sprite_index, self.x%240, self.y%136, Screen.transparent_color, 1, self.reflected, 0, self.width, self.height)
+    end
+end
+
+function Roamer:move()
+    if Game.time % 4 == 0 and Game.stage.stage == "street" then -- move per 
+        local new_x = self.x
+        local new_y = self.y
+        if Game.dong.x > self.x then  new_x = self.x + 1
+        elseif Game.dong.x < self.x then new_x = self.x - 1 end 
+        if Game.dong.y > self.y then new_y = self.y + 1 
+        elseif Game.dong.y < self.y then new_y = self.y - 1 end 
+       -- local new_x = self.x + math.random(-1,1)
+       -- local new_y = self.y + math.random(-1,1)
+        local offset_x = self.width * Screen.pixels_per_square;
+        local offset_y = self.height * Screen.pixels_per_square;
+        -- update reflected
+        self.reflected = math.random(0,1)
+        -- out of bounds
+        -- out of bounds
+        if solid_tiles(new_x, new_y) then
+            new_x = self.x new_y = self.y
+            --print("ok",0,100)
+        else
+            self.x = new_x self.y = new_y 
+        end
+        -- update collision
+        self.hitbox.x1 = new_x
+        self.hitbox.y1 = new_y
+        self.hitbox.x2 = new_x + offset_x
+        self.hitbox.y2 = new_y + offset_y
+    end
 end
 
 -------------------------------------------------
@@ -367,6 +453,7 @@ function Dong:draw()
 end
 
 function Dong:move()
+    if(Mom.drew == 0) then
     local new_x = self.x
     local new_y = self.y
     local offset_x = self.width * Screen.pixels_per_square
@@ -419,6 +506,7 @@ function Dong:move()
         self.current_sprite_index = self.current_sprite_index + 4
     end
 end
+end
 
 function Dong:action()
     if Keyboard.space_keyp() and self.battery > 0 then
@@ -441,19 +529,35 @@ end
 -------------------------------------------------
 -------------------- MOM -----------------------
 -------------------------------------------------
-Mom = {id1 = 352, id2=354, x = 10*8, y = 8*8, xPosMinInteragir = 115, xPosMaxInteragir = 170, drew = 1, flag = 1, msgSize = 7,
-msg={"Hello young Anakin,",
-"this is the reflection tower.",
-"Inside you must go through the", 
-"mirrors so that you can enter",
-"the reflection room!!",
-"At the summit you will find the Devil!",
-"He has your reflection in a crystal",
-"Good Luck!"}}
+Mom = {id1 = 352, id2=354, x = 10*8, y = 8*8, xPosMinInteragir = 115, xPosMaxInteragir = 170, drew = 1, flag = 1, msgSize = 9,
+msg={"Hello DONG,",
+"why are you still in the bed?",
+"I need you to go to laundry", 
+"to take up some clothes",
+"I also need you to go the bank",
+"to withdraw ur bitcoin profits",
+"Your crush is also waiting for you",
+"I know that you like your personal space",
+"but please be out of bed for a while",
+"it's good for you"}}
 
 function Mom:draw()
-	--desenhar Mom
-		spr(Mom.id1,Mom.x, Mom.y,Screen.transparent_color, 1, 0, 0, 2, 2) 
+    --desenhar Mom
+        if(cam.x == 0 and cam.y == 0) then 
+        spr(Mom.id1,Mom.x, Mom.y,Screen.transparent_color, 1, 0, 0, 2, 2)  end
+        if(Mom.drew == 1) then
+            if a < Mom.msgSize + 1 then
+                print(Mom.msg[a],8,96,0)
+                print(Mom.msg[a+1],8,108,0)
+                if(btnp(4) and (Mom.flag == 0) ) then
+                    a=a+2 end
+                Mom.flag = 0
+            else 
+                a = 1
+                Mom.drew = 0
+                Mom.flag = 1
+            end
+        end
 end
 
 -------------------------------------------------
@@ -466,7 +570,10 @@ Game = {
     enemies = {},           -- enemies array
     header = Header:new(),  -- Header with game information
     mom = Mom,
-    safe_spaces = {}
+    safe_spaces = {},
+    stage = Stage:new(),
+    roamers = {},
+    cam = cam
 }
 -- METHODS --
 function Game:out_of_bounds(hit_box)
@@ -475,6 +582,16 @@ function Game:out_of_bounds(hit_box)
 	if hit_box.y1 < 10 then return true end                 -- out of upper side
 	if hit_box.y2 > Screen.height-1 then return true end    -- out of lower side
 	return false -- if all else fails, hit_box is inside
+end
+
+function Game:reset_enemies()
+    for enemy in pairs(self.enemies) do
+        self.enemies [enemy] = nil
+    end
+    for enemy in pairs(self.roamers) do
+        self.roamers [enemy] = nil
+    end
+    init()
 end
 
 function Game:enemy_collision()
@@ -494,17 +611,29 @@ function Game:enemy_collision()
             end
         end
     end
+    for _, enemy in pairs(self.roamers) do
+        -- enemy collision
+        if detect_collision(self.dong.hitbox, enemy.hitbox) and self.dong.sanity > 0 then
+            if not(self.dong.headphones_on) then self.dong.sanity = self.dong.sanity - 1 end
+        end
+    end
 end
 
 function Game:update_enemies()
     for _, enemy in pairs(self.enemies) do
         enemy:move()
     end
+    for _, roamer in pairs(self.roamers) do
+        roamer:move()
+    end
 end
 
 function Game:draw_enemies()
     for _, enemy in pairs(self.enemies) do
         enemy:draw()
+    end
+    for _, roamer in pairs(self.roamers) do
+        roamer:draw()
     end
 end
 
@@ -535,14 +664,20 @@ function Game:update()
 end
 
 function Game:draw()
-    x = 0 + (Game.dong.x // Screen.width * Screen.width)
-    y = 0 + (Game.dong.y // Screen.height * Screen.height)
-    map(x//8,y//8)
-    --Mom.draw()
+    cam.x = 0 + (Game.dong.x // Screen.width * Screen.width)
+    cam.y = 0 + (Game.dong.y // Screen.height * Screen.height)
+    map(cam.x//8,cam.y//8)
+    self.mom:draw()
     self.header:draw()                  -- header
     self.dong:draw()                    -- dong
     self:draw_enemies()                 -- enemy
     self:draw_safe_space()              -- safe space
+    --self.safe_space:draw()              -- safe space
+    if(cam.x == 0 and cam.y == 0) then
+        print("Move",136,72,0)
+		print("Shield",168,72,0)
+        print("Skip",208,72,0)
+    end
 end
 
 -------------------------------------------------
@@ -582,9 +717,10 @@ function isSolidTile(tile)
 end
 
 function init()
-    -- enemies
-    local e = Enemy:new()
-    table.insert(Game.enemies, e)
+    --local e = Enemy:new()
+    roamer1 = Roamer:new();
+    --table.insert(Game.enemies, e)
+    table.insert(Game.roamers, roamer1)
 
     -- safe spaces
     local atm = SafeSpace:new(49 * Screen.pixels_per_square, 10 * Screen.pixels_per_square, 288, 2, 3)
@@ -599,4 +735,5 @@ function TIC()
     Screen:clear()
     Game:update()
     Game:draw()
+    Game.stage:whereIsStage()
 end
