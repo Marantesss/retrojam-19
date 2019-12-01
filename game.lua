@@ -178,7 +178,8 @@ end
 -------------------------------------------------
 Enemy = {
     x, y,                         -- coords
-    sprite_index, width, height,  -- sprite index and blocks
+    current_sprite_index,       -- Sprite indexes
+    width, height,  -- sprite index and blocks
     hitbox,                       -- collision
     reflected,
     message_attacks
@@ -189,11 +190,11 @@ Enemy.__index = Enemy
 function Enemy:new()
 	local e = {}			  	    -- our new object
     setmetatable(e, Enemy)	        -- make Enemy handle lookup
-    e.x = math.random(0, Screen.width)
-    e.y = math.random(8, Screen.height)
+    e.x = 144 * Screen.pixels_per_square
+    e.y = 8 * Screen.pixels_per_square
     e.width = 2
-    e.height = 2
-    e.sprite_index = 264
+    e.height = 4
+    e.current_sprite_index = 360
     e.hitbox = HitBox:new(e.x, e.y, e.x + e.width * Screen.pixels_per_square, e.y + e.height * Screen.pixels_per_square)
     e.reflected = 0
     e.message_attacks = {}
@@ -248,6 +249,11 @@ function Enemy:move()
     if (Game.time + 150) % 300 == 0 then
         self:super_fire()
     end
+
+    -- animate
+    -- change sprite
+    if Game.time % 30 < 15 then self.current_sprite_index = 360
+    else self.current_sprite_index = 362 end
     
     -- update attacks
     local it = 1
@@ -278,7 +284,9 @@ function Enemy:super_fire()
     table.insert(self.message_attacks, MessagesAttack:new(self.x, self.y, 0, 1))    -- down
 end
 
-
+-------------------------------------------------
+-------------------- ROAMER ---------------------
+-------------------------------------------------
 Roamer = {
     x, y,                         -- coords
     sprite_index, width, height,  -- sprite index and blocks
