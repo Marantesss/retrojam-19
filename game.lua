@@ -43,7 +43,7 @@ Bar = {
 -- CONSTRUCTOR --
 Bar.__index = Bar
 function Bar:new(title, x)
-	local b = {}			  	-- our new object
+	local b = {}			-- our new object
     setmetatable(b, Bar)	-- make Bar handle lookup
     b.x = x
     b.y = 0
@@ -73,10 +73,10 @@ Header = {
 -- CONSTRUCTOR --
 Header.__index = Header
 function Header:new()
-	local h = {}			  	-- our new object
-    setmetatable(h, Header)	-- make Header handle lookup
-    h.sanity = Bar:new("Sanity", 100)
-    h.battery = Bar:new("Battery", 0)
+	local h = {}			  	        -- our new object
+    setmetatable(h, Header)	            -- make Header handle lookup
+    h.sanity = Bar:new("Sanity", 100)   -- Sanity bar
+    h.battery = Bar:new("Battery", 0)   -- Battery bar
 	return h
 end
 -- METHODS --
@@ -271,9 +271,8 @@ Dong = {
     current_sprite_index, sprite_indexes,       -- Sprite indexes
     width, height,                              -- sprite blocks
     hitbox,                                     -- collision
-    reflected,
-    sanity,
-    battery,
+    reflected,                                  -- reflectd sprite
+    sanity, battery,                            -- hp and shiled 
     headphone_on                                -- headphones
 }
 -- CONSTRUCTOR --
@@ -340,7 +339,7 @@ function Dong:move()
         if Game.time % 30 < 15 then self.current_sprite_index = 256
         else self.current_sprite_index = 258 end
     end
-    -- headphone
+    -- headphone sprite
     if self.headphone_on then
         self.current_sprite_index = self.current_sprite_index + 4
     end
@@ -350,11 +349,11 @@ function Dong:action()
     if Keyboard.space_keyp() and self.battery > 0 then
         self.headphone_on = not(self.headphone_on)
     end
-
+    -- if battery is over, take off headphones
     if self.battery == 0 then
         self.headphone_on = false
     end
-
+    -- update headphone battery
     if Game.time % 60 == 0 then
         if Game.dong.headphone_on and Game.dong.battery > 0 then
             Game.dong.battery = Game.dong.battery - 1
