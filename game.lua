@@ -143,7 +143,7 @@ Enemy = {
     sprite_index, width, height,  -- sprite index and blocks
     hitbox,                       -- collision
     reflected,
-    messagesAttack
+    message_attacks
 }
 
 -- CONSTRUCTOR --
@@ -158,12 +158,17 @@ function Enemy:new()
     e.sprite_index = 264
     e.hitbox = HitBox:new(e.x, e.y, e.x + e.width * Screen.pixels_per_square, e.y + e.height * Screen.pixels_per_square)
     e.reflected = 0
-    e.messagesAttack = MessagesAttack:new(e.x,e.y)
+    e.message_attacks = {}
     return e
 end
 -- METHODS --
 function Enemy:draw()
+    -- draw enemy
     spr(self.sprite_index, self.x, self.y, Screen.transparent_color, 1, self.reflected, 0, self.width, self.height)
+    -- draw bullets
+    for _,  attack in pairs(self.message_attacks) do
+        attack:draw()
+    end
 end
 
 function Enemy:move()
@@ -174,8 +179,8 @@ function Enemy:move()
         --elseif Game.dong.x < self.x then new_x = self.x - 1 end 
         --if Game.dong.y > self.y then new_y = self.y + 1 
         --elseif Game.dong.y < self.y then new_y = self.y - 1 end 
-       -- local new_x = self.x + math.random(-1,1)
-       -- local new_y = self.y + math.random(-1,1)
+        --local new_x = self.x + math.random(-1,1)
+        --local new_y = self.y + math.random(-1,1)
         local offset_x = self.width * Screen.pixels_per_square;
         local offset_y = self.height * Screen.pixels_per_square;
         -- update reflected
@@ -188,6 +193,24 @@ function Enemy:move()
         self.hitbox.y1 = new_y
         self.hitbox.x2 = new_x + offset_x
         self.hitbox.y2 = new_y + offset_y
+    end
+
+    -- spawn attack every 120 tics (2 seconds)
+    if Game.time % 120 == 0 then
+        local new_attack = MessagesAttack:new(self.x, self.y)
+        table.insert(self.message_attacks, new_attack)
+    end
+    
+    -- update attacks
+    local it = 1
+    while it <= #self.message_attacks do
+        self.message_attacks[it]:update()
+        -- attack out of bounds
+        if Game:out_of_bounds(self.message_attacks[it].hitbox) then
+            table.remove(self.message_attacks, it)
+        else
+            it = it + 1
+        end
     end
 end
 
@@ -221,7 +244,7 @@ function MessagesAttack:new(x,y)
 	return e
 end
 -- METHODS --
-function MessagesAttack:move()
+function MessagesAttack:update()
     print(self.go_out_x,0,100)
     print(self.go_out_y,0,110)
     print(self.old_x,0,120)
@@ -230,7 +253,7 @@ function MessagesAttack:move()
     print(self.y,20,130)
     print(Game.dong.y, 40,120)
     print(Game.dong.x, 40,130)
-    --if Game.time % 2 == 0 then
+    -- if Game.time % 2 == 0 then
         local new_x = self.x 
         local new_y = self.y
         if self.go_out_x then if self.old_x >= self.x then new_x = self.x-1 else new_x = self.x +1 end end
@@ -241,15 +264,15 @@ function MessagesAttack:move()
         elseif Game.dong.y < self.y and not self.go_out_y then new_y = self.y - 1 self.go_out_y = true end 
         local offset_x = self.width * Screen.pixels_per_square;
         local offset_y = self.height * Screen.pixels_per_square;
-        if new_x > 0 and new_x + offset_x < Screen.width then self.x = new_x else self:resetMessagesAttack(self) end
-        if new_y > 0  and new_y + offset_y < Screen.height and self.go_out_x then self.y = new_y else self:resetMessagesAttack(self) end
+        if new_x > 0 and new_x + offset_x < Screen.width then self.x = new_x else self:resetMessagesAttack() end
+        if new_y > 0  and new_y + offset_y < Screen.height and self.go_out_x then self.y = new_y else self:resetMessagesAttack() end
         self.hitbox.x1 = new_x
         self.hitbox.y1 = new_y
         self.hitbox.x2 = new_x + offset_x
         self.hitbox.y2 = new_y + offset_y
-   -- end
+    -- end
 end
-
+--[[
 function MessagesAttack:resetMessagesAttack() 
     self.x = Game.enemy.x
     self.y = Game.enemy.y
@@ -258,6 +281,7 @@ function MessagesAttack:resetMessagesAttack()
     self.go_out_x = false
     self.go_out_y = false
 end
+]]--
 
 function MessagesAttack:draw()
     spr(self.sprite_index, self.x, self.y, -1, 1, 0, 0, self.width, self.height)
@@ -370,15 +394,24 @@ end
 Game = {
     time = 0,               -- time passed
     dong = Dong:new(),      -- Dong
-    enemy = Enemy:new(),    -- enemies array EVENTUALLY
+    enemies = {},           -- enemies array
     header = Header:new(),  -- Header with game information
     safe_space = SafeSpace:new(20, 20)
 }
 -- METHODS --
+function Game:out_of_bounds(hit_box)
+    if hit_box.x1 < 0 then return true end              -- out of left side
+	if hit_box.x2 > Screen.width then return true end   -- out of right side
+	if hit_box.y1 < 10 then return true end             -- out of upper side
+	if hit_box.y2 > Screen.height then return true end  -- out of lower side
+	return false -- if all else fails, hit_box is inside
+end
+
 function Game:enemy_collision()
-    -- TODO: for loop for all enemies
-    if detect_collision(self.dong.hitbox, self.enemy.hitbox) and self.dong.sanity > 0 then
-        self.dong.sanity = self.dong.sanity - 1
+    for _, enemy in pairs(self.enemies) do
+        if detect_collision(self.dong.hitbox, enemy.hitbox) and self.dong.sanity > 0 then
+            self.dong.sanity = self.dong.sanity - 1
+        end
     end
 end
 
@@ -389,13 +422,23 @@ function Game:safe_space_collision()
     end
 end
 
+function Game:update_enemies()
+    for _, enemy in pairs(self.enemies) do
+        enemy:move()
+    end
+end
+
+function Game:draw_enemies()
+    for _, enemy in pairs(self.enemies) do
+        enemy:draw()
+    end
+end
+
 function Game:update()
     self.header:update()                -- header
     self.dong:move()                    -- dong
     self.dong:action()
-    self.enemy:move()                   -- enemy
-    self.enemy.messagesAttack:move()    -- attack
-    self.safe_space:draw()              -- safe space
+    self:update_enemies()               -- enemy
     
     self:enemy_collision()              -- enemy collisions
     self:safe_space_collision()         -- safe space collision
@@ -406,8 +449,7 @@ end
 function Game:draw()
     self.header:draw()                  -- header
     self.dong:draw()                    -- dong
-    self.enemy:draw()                   -- enemy
-    self.enemy.messagesAttack:draw()    -- attack
+    self:draw_enemies()                 -- enemy
     self.safe_space:draw()              -- safe space
 end
 
@@ -427,6 +469,13 @@ function detect_collision(hit_box_1, hit_box_2)
 	if hit_box_1.y2 < hit_box_2.y1 then return false end -- 1 is above 2
 	return true -- if all else fails, there has been collision
 end
+
+function init()
+    local e = Enemy:new()
+    table.insert(Game.enemies, e)
+end
+
+init()
 -------------------------------------------------
 ----------------- GAME LOOP ---------------------
 -------------------------------------------------
