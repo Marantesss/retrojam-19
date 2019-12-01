@@ -24,7 +24,7 @@ function Stage:whereIsStage()
         self.stage = "room"
     elseif Game.cam.x >= 960 and Game.cam.x < 1200 and Game.cam.y >= 0 and Game.cam.y < 136 then
         self.stage = "dry_cleaners"
-    elseif false then
+    elseif Game.cam.x >= 90 * 8 and Game.cam.x < 120 * 8 and Game.cam.y >= 35*8 and Game.cam.y < 51*8 then
         self.stage = "bank"
     else
         self.stage = "street"
@@ -336,6 +336,144 @@ function Washy:super_fire()
     table.insert(self.message_attacks, MessagesAttack:new(self.x, self.y, 0, -1, 319))   -- up
     table.insert(self.message_attacks, MessagesAttack:new(self.x, self.y, 0, 1, 319))    -- down
 end
+
+
+
+
+
+
+
+Washy_bank = {
+    x, y,                         -- coords
+    current_sprite_index,       -- Sprite indexes
+    width, height,  -- sprite index and blocks
+    hitbox,                       -- collision
+    reflected,
+    message_attacks,
+    socks,
+}
+
+-- CONSTRUCTOR --
+Washy_bank.__index = Washy_bank
+function Washy_bank:new()
+	local e = {}			  	    -- our new object
+    setmetatable(e, Washy_bank)	        -- make Washy handle lookup
+    e.x = 108 * Screen.pixels_per_square
+    e.y = 42 * Screen.pixels_per_square
+    e.width = 2
+    e.height = 4
+    e.current_sprite_index = 360
+    e.hitbox = HitBox:new(e.x, e.y, e.x + e.width * Screen.pixels_per_square, e.y + e.height * Screen.pixels_per_square)
+    e.reflected = 0
+    e.message_attacks = {}
+    e.socks = {}
+    return e
+end
+
+-- METHODS --
+function Washy_bank:draw()
+    if(Game.stage.stage == "bank") then
+        if (0 + self.x // Screen.width * Screen.width == cam.x and 0 + (self.y // Screen.height * Screen.height) == cam.y) then
+            -- draw Washy
+            spr(self.current_sprite_index, self.x % Screen.width, self.y % Screen.height, Screen.transparent_color, 1, self.reflected, 0, self.width, self.height)
+            -- draw bullets
+            for _,  attack in pairs(self.message_attacks) do
+                attack:draw()
+            end
+            -- draw socks
+            for _,  sock in pairs(self.socks) do
+                sock:draw()
+            end
+        end
+    end
+end
+
+function Washy_bank:move()
+
+    
+    if Game.time % 4 == 0 and Game.stage.stage == "bank" then -- move per 
+        local new_x = self.x
+        local new_y = self.y
+        if Game.dong.x > self.x then  new_x = self.x + 1
+        elseif Game.dong.x < self.x then new_x = self.x - 1 end 
+        if Game.dong.y > self.y then new_y = self.y + 1 
+        elseif Game.dong.y < self.y then new_y = self.y - 1 end 
+       -- local new_x = self.x + math.random(-1,1)
+       -- local new_y = self.y + math.random(-1,1)
+        local offset_x = self.width * Screen.pixels_per_square;
+        local offset_y = self.height * Screen.pixels_per_square;
+        -- update reflected
+        self.reflected = math.random(0,1)
+        -- out of bounds
+        if solid_tiles(new_x, new_y) then
+            new_x = self.x new_y = self.y
+            --print("ok",0,100)
+        else
+            self.x = new_x self.y = new_y 
+        end
+        -- update collision
+        self.hitbox.x1 = new_x
+        self.hitbox.y1 = new_y
+        self.hitbox.x2 = new_x + offset_x
+        self.hitbox.y2 = new_y + offset_y
+        -- spawn attack every 120 tics (2 seconds)
+        if Game.time % 120 == 0 then
+            self:fire()
+        end
+        -- spawn super attack every 300 tics (5 seconds)
+        if (Game.time + 150) % 300 == 0 then
+            self:super_fire()
+        end
+        -- animate
+        -- change sprite
+        if Game.time % 30 < 15 then self.current_sprite_index = 360
+        else self.current_sprite_index = 362 end
+        
+        -- update attacks
+        local it = 1
+        while it <= #self.message_attacks do
+            self.message_attacks[it]:update()
+            -- attack out of bounds
+            if Game:out_of_bounds(self.message_attacks[it].hitbox) then
+                table.remove(self.message_attacks, it)
+            else
+                it = it + 1
+            end
+        end
+
+        -- update socks
+        local it = 1
+        while it <= #self.socks do
+            self.socks[it]:update()
+            -- attack out of bounds
+            if Game:out_of_bounds(self.socks[it].hitbox) then
+                table.remove(self.socks, it)
+            else
+                it = it + 1
+            end
+        end
+    end
+
+end
+
+function Washy_bank:fire()
+    --get fire direction
+    local distance = math.sqrt(math.pow(self.x - Game.dong.x, 2) + math.pow(self.y - Game.dong.y, 2))
+    local vx = (Game.dong.x - self.x) / distance
+    local vy = (Game.dong.y - self.y) / distance
+
+    table.insert(self.message_attacks, MessagesAttack:new(self.x, self.y, vx, vy, 319))
+    table.insert(self.socks, Collectible:new(self.x, self.y, math.random(0,1), math.random(0,1), 318))
+end
+
+function Washy_bank:super_fire()
+    table.insert(self.message_attacks, MessagesAttack:new(self.x, self.y, 1, 0, 319))    -- right
+    table.insert(self.message_attacks, MessagesAttack:new(self.x, self.y, -1, 0, 319))   -- left
+    table.insert(self.message_attacks, MessagesAttack:new(self.x, self.y, 0, -1, 319))   -- up
+    table.insert(self.message_attacks, MessagesAttack:new(self.x, self.y, 0, 1, 319))    -- down
+end
+
+
 
 -------------------------------------------------
 -------------------- ROAMER ---------------------
@@ -675,6 +813,7 @@ Game = {
     dong = Dong:new(),      -- Dong
     enemies = {},           -- enemies array
     washy = Washy:new(),    -- WASHY WASHY
+    washy_bank = Washy_bank:new(),    -- WASHY BANK
     header = Header:new(),  -- Header with game information
     mom = Mom,
     safe_spaces = {},
@@ -700,6 +839,36 @@ function Game:reset_enemies()
 end
 
 function Game:enemies_collision()
+
+    -- Washy collision
+    if detect_collision(self.dong.hitbox, self.washy_bank.hitbox) and self.dong.sanity > 0 then
+        if not(self.dong.headphones_on) then
+            if self.time % 60 == 0 then
+                self.dong.sanity = self.dong.sanity - 1
+            end
+        end
+    end
+    -- word collision
+    local it = 1
+    while it <= #self.washy_bank.message_attacks do
+        if detect_collision(self.dong.hitbox, self.washy.message_attacks[it].hitbox) and self.dong.sanity > 0 then
+            table.remove(self.washy.message_attacks, it)
+            if not(self.dong.headphones_on) then self.dong.sanity = self.dong.sanity - 1 end
+        else
+            it = it + 1
+        end
+    end
+    -- sock collision
+    local it = 1
+    while it <= #self.washy.socks do
+        if detect_collision(self.dong.hitbox, self.washy.socks[it].hitbox) and self.dong.sanity > 0 then
+            table.remove(self.washy.socks, it)
+            if not(self.dong.headphones_on) then self.dong.sanity = self.dong.sanity - 1 end
+        else
+            it = it + 1
+        end
+    end
+
     -- Washy collision
     if detect_collision(self.dong.hitbox, self.washy.hitbox) and self.dong.sanity > 0 then
         if not(self.dong.headphones_on) then
@@ -743,6 +912,7 @@ end
 function Game:update_enemies()
     -- washy
     self.washy:move()
+    self.washy_bank:move()
     -- bank
 
     -- roamers
@@ -754,6 +924,7 @@ end
 function Game:draw_enemies()
     -- washy
     self.washy:draw()
+    self.washy_bank:draw()
     -- bank
 
     -- roamers
