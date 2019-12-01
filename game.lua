@@ -239,9 +239,7 @@ end
 
 function Washy:move()
 
-    print(#self.message_attacks, 20, 80)
-    print(#self.socks, 20, 100)
-
+    
     if Game.time % 4 == 0 and Game.stage.stage == "dry_cleaners" then -- move per 
         local new_x = self.x
         local new_y = self.y
@@ -254,7 +252,7 @@ function Washy:move()
         local offset_x = self.width * Screen.pixels_per_square;
         local offset_y = self.height * Screen.pixels_per_square;
         -- update reflected
-        self.reflected = math.random(0,1)
+        -- self.reflected = math.random(0,1)
         -- out of bounds
         if solid_tiles(new_x, new_y) then
             new_x = self.x new_y = self.y
@@ -679,17 +677,21 @@ function Game:out_of_bounds(hit_box)
 end
 
 function Game:reset_enemies()
-    self.washy = Washy:new()
-    for Washy in pairs(self.roamers) do
-        self.roamers [Washy] = nil
+    for enemies in pairs(self.roamers) do
+        self.roamers [enemies] = nil
     end
+    --self.washy = Washy:new()
     init()
 end
 
 function Game:enemies_collision()
     -- Washy collision
     if detect_collision(self.dong.hitbox, self.washy.hitbox) and self.dong.sanity > 0 then
-        if not(self.dong.headphones_on) then self.dong.sanity = self.dong.sanity - 1 end
+        if not(self.dong.headphones_on) then
+            if self.time % 60 == 0 then
+                self.dong.sanity = self.dong.sanity - 1
+            end
+        end
     end
     -- word collision
     local it = 1
@@ -711,10 +713,14 @@ function Game:enemies_collision()
             it = it + 1
         end
     end
+    -- Enemy collision
     for _, enemy in pairs(self.roamers) do
-        -- Washy collision
         if detect_collision(self.dong.hitbox, enemy.hitbox) and self.dong.sanity > 0 then
-            if not(self.dong.headphones_on) then self.dong.sanity = self.dong.sanity - 1 end
+            if not(self.dong.headphones_on) then
+                if self.time % 60 == 0 then
+                    self.dong.sanity = self.dong.sanity - 1
+                end
+            end
         end
     end
 end
@@ -744,7 +750,9 @@ end
 function Game:safe_space_collision()
     for _, safe_space in pairs(self.safe_spaces) do
         if detect_collision(self.dong.hitbox, safe_space.hitbox) and self.dong.sanity < 10 then
-            self.dong.sanity = self.dong.sanity + 1
+            if self.time % 60 == 0 then
+                self.dong.sanity = self.dong.sanity + 1
+            end
         end
     end
 end
